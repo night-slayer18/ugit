@@ -92,6 +92,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
+        cache: 'pip'
         
     - name: Install build dependencies
       run: |
@@ -138,12 +139,14 @@ jobs:
         
     - name: Publish to TestPyPI
       if: steps.check-token.outputs.token-available == 'true'
+      continue-on-error: true
+      id: twine_upload
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
       run: |
-        pip install twine
-        twine upload --repository testpypi dist/* --skip-existing || echo "⚠️ TestPyPI upload failed (possibly already exists)"
+        python -m pip install --upgrade twine
+        python -m twine upload --repository testpypi dist/* --skip-existing
         
     - name: Log release info
       run: |
@@ -151,7 +154,11 @@ jobs:
         echo "📦 Package files:"
         ls -la dist/
         if [ "${{ steps.check-token.outputs.token-available }}" == "true" ]; then
-          echo "🚀 Package uploaded to TestPyPI"
+          if [ "${{ steps.twine_upload.outcome }}" == "success" ]; then
+            echo "🚀 Package uploaded to TestPyPI"
+          else
+            echo "⚠️ TestPyPI upload failed. Check the logs from the 'Publish to TestPyPI' step."
+          fi
         else
           echo "💡 To enable TestPyPI publishing, add TEST_PYPI_API_TOKEN secret to repository"
         fi
