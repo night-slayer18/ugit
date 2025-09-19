@@ -16,7 +16,7 @@ name = "ugit"
 description = "A minimal Git implementation in Python"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
-license = { text = "LICENSE" }
+license = { text = "MIT" }
 authors = [
   { name = "night-slayer18", email = "night-slayer18@users.noreply.github.com" }
 ]
