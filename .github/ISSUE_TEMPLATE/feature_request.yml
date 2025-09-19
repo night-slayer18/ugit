@@ -1,0 +1,122 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for ugit
+title: "[Feature]: "
+labels: ["enhancement", "feature-request"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your feature request! Please provide detailed information about the feature you'd like to see in ugit.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you're requesting.
+      placeholder: Describe the feature you'd like to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe what problem this feature would solve.
+      placeholder: I'm frustrated when... / It would be helpful if...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see implemented.
+      placeholder: I would like ugit to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: Alternative approaches could be...
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - New command
+        - Enhancement to existing command
+        - Performance improvement
+        - User interface improvement
+        - Developer experience improvement
+        - Documentation improvement
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Nice to have
+        - Would be helpful
+        - Important for my use case
+        - Critical/Blocking
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe your specific use case and how this feature would help you.
+      placeholder: I need this feature because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-ideas
+    attributes:
+      label: Implementation Ideas
+      description: If you have ideas about how this could be implemented, please share them.
+      placeholder: This could be implemented by...
+
+  - type: textarea
+    id: git-comparison
+    attributes:
+      label: Git Comparison
+      description: How does Git handle this functionality? Should ugit work similarly or differently?
+      placeholder: In Git, this works like... / ugit should be different because...
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Provide examples of how this feature would be used.
+      render: shell
+      placeholder: |
+        # Example usage:
+        ugit new-feature --option value
+        ugit existing-command --new-flag
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following before submitting this feature request.
+      options:
+        - label: I have searched existing issues to ensure this feature hasn't been requested before
+          required: true
+        - label: I have included all the required information above
+          required: true
+        - label: This feature aligns with ugit's goals as a minimal Git implementation
+          required: true
+        - label: I understand this is a volunteer project and implementation may take time
+          required: true

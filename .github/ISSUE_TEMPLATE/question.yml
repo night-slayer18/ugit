@@ -1,0 +1,78 @@
+name: Question
+description: Ask a question about using ugit
+title: "[Question]: "
+labels: ["question"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your question! Please provide as much context as possible to help us give you the best answer.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know about ugit?
+      placeholder: How do I... / Why does ugit... / What is the best way to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Please provide context about what you're trying to accomplish.
+      placeholder: I'm trying to... / I want to understand... / I'm working on...
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-tried
+    attributes:
+      label: What Have You Tried?
+      description: If applicable, describe what you've already tried or researched.
+      placeholder: I've tried... / I've looked at... / I've read...
+
+  - type: dropdown
+    id: question-type
+    attributes:
+      label: Question Type
+      description: What type of question is this?
+      options:
+        - How to use a specific command
+        - Understanding ugit behavior
+        - Comparison with Git
+        - Installation/setup help
+        - Development/contribution question
+        - General usage question
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: ugit-version
+    attributes:
+      label: ugit Version
+      description: What version of ugit are you using? (if applicable)
+      placeholder: "e.g., 0.1.0, main branch"
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating System
+      description: What operating system are you using? (if applicable)
+      placeholder: "e.g., macOS 13.0, Ubuntu 22.04, Windows 11"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following before submitting your question.
+      options:
+        - label: I have searched existing issues and discussions for similar questions
+          required: true
+        - label: I have checked the documentation (README, docs folder)
+          required: true
+        - label: I have provided sufficient context for others to understand my question
+          required: true
