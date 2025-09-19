@@ -8,6 +8,7 @@ of Git including object storage, staging, committing, and basic history.
 # Version is managed by setuptools_scm at build time (writes ugit/_version.py).
 # Prefer the installed distribution metadata when available, otherwise fall
 # back to the setuptools_scm generated file, and finally to a safe fallback.
+# isort: off
 try:
     # Python 3.8+
     from importlib.metadata import PackageNotFoundError, version
@@ -18,6 +19,7 @@ except ImportError:
     except ImportError:
         version = None
         PackageNotFoundError = Exception  # type: ignore[misc,assignment]
+# isort: on
 
 __version__ = "0+unknown"
 if version is not None:
