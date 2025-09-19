@@ -14,7 +14,7 @@ Thank you for your interest in contributing to ugit! This document provides guid
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/YOUR-USERNAME/ugit.git
+   git clone https://github.com/night-slayer18/ugit.git
    cd ugit
    ```
 
