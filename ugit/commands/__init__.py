@@ -2,11 +2,11 @@
 Command implementations for ugit.
 """
 
-from .init import init
-from .add import add  
-from .commit import commit
-from .log import log
+from .add import add
 from .checkout import checkout
+from .commit import commit
+from .init import init
+from .log import log
 from .status import status
 
 __all__ = ["init", "add", "commit", "log", "checkout", "status"]

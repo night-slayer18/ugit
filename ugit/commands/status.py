@@ -2,44 +2,45 @@
 Show repository status.
 """
 
-import os
 import json
-from typing import Set, List
-from ..core.repository import Repository, Index
-from ..core.objects import hash_object, get_object
-from ..utils.helpers import walk_files, ensure_repository
+import os
+from typing import List, Set
+
+from ..core.objects import get_object, hash_object
+from ..core.repository import Index, Repository
+from ..utils.helpers import ensure_repository, walk_files
 
 
 def status() -> None:
     """Display the status of the working directory and staging area."""
     repo = ensure_repository()
-        
+
     index = Index(repo)
     index_data = index.read()
-    
+
     # Get current HEAD commit for comparison
     head_sha = repo.get_head_ref()
     committed_files = _get_committed_files(head_sha) if head_sha else {}
-    
+
     # Categorize files
     staged_files = _get_staged_files(index_data, committed_files)
     modified_files = _get_modified_files(index_data)
     untracked_files = _get_untracked_files(set(index_data.keys()))
     deleted_files = _get_deleted_files(set(index_data.keys()))
-    
+
     # Display status sections
     if staged_files:
         _print_status_section("Changes to be committed:", staged_files, "green")
-    
+
     if modified_files:
         _print_status_section("Changes not staged for commit:", modified_files, "red")
-    
+
     if deleted_files:
         _print_status_section("Deleted files:", deleted_files, "red")
-    
+
     if untracked_files:
         _print_status_section("Untracked files:", untracked_files, "red")
-    
+
     if not any([staged_files, modified_files, untracked_files, deleted_files]):
         print("Nothing to commit, working tree clean")
 
@@ -50,14 +51,14 @@ def _get_committed_files(head_sha: str) -> dict:
         type_, data = get_object(head_sha)
         if type_ != "commit":
             return {}
-            
+
         commit = json.loads(data.decode())
         tree_sha = commit["tree"]
-        
+
         type_, tree_data = get_object(tree_sha)
         if type_ != "tree":
             return {}
-            
+
         tree = json.loads(tree_data.decode())
         return dict(tree)
     except Exception:

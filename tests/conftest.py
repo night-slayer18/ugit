@@ -1,10 +1,10 @@
 """Test configuration and utilities for ugit tests."""
 
 import os
-import tempfile
 import shutil
-from typing import Generator
+import tempfile
 from pathlib import Path
+from typing import Generator
 
 import pytest
 
@@ -21,7 +21,7 @@ def temp_repo() -> Generator[Path, None, None]:
             os.chdir(old_cwd)
 
 
-@pytest.fixture  
+@pytest.fixture
 def sample_file(temp_repo: Path) -> Path:
     """Create a sample file for testing."""
     file_path = temp_repo / "test.txt"
@@ -33,5 +33,6 @@ def sample_file(temp_repo: Path) -> Path:
 def initialized_repo(temp_repo: Path) -> Path:
     """Create an initialized ugit repository."""
     from ugit.commands.init import init
+
     init()
     return temp_repo

@@ -14,7 +14,4 @@ __author__ = "night-slayer18"
 # from ugit.core.objects import hash_object, get_object
 # from ugit.commands import init, add, commit, log, checkout, status
 
-__all__ = [
-    "__version__",
-    "__author__"
-]
+__all__ = ["__version__", "__author__"]
