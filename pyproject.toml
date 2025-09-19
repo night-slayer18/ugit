@@ -81,6 +81,7 @@ extend-exclude = '''
   | \.venv
   | build
   | dist
+  | ugit/_version\.py
 )/
 '''
 
