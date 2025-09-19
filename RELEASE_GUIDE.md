@@ -33,11 +33,37 @@ release:
 
 ## Setting Up TestPyPI (When Ready)
 
+### 🔐 IMPORTANT: Never Commit Tokens to Git!
+**⚠️ Always use GitHub repository secrets - never put tokens in your code!**
+
+### Step 1: Get Your TestPyPI Token
 1. Create TestPyPI account: https://test.pypi.org/account/register/
 2. Generate API token: https://test.pypi.org/manage/account/token/
-3. Add secret to GitHub repo: Settings > Secrets > Actions > New repository secret
-   - Name: `TEST_PYPI_API_TOKEN`
-   - Value: Your TestPyPI API token (starts with `pypi-`)
+3. Copy the token (starts with `pypi-`)
+
+### Step 2: Add Token to GitHub Secrets
+1. **Go to your repository**: https://github.com/night-slayer18/ugit
+2. **Click "Settings"** tab (top of repository page)
+3. **Navigate to secrets**: 
+   - Click "Secrets and variables" in left sidebar
+   - Click "Actions"
+4. **Add the secret**:
+   - Click "New repository secret"
+   - **Name**: `TEST_PYPI_API_TOKEN`
+   - **Secret**: Paste your TestPyPI token
+   - Click "Add secret"
+
+### Step 3: Enable Release Workflow
+Uncomment the release job in `.github/workflows/ci.yml`:
+
+```yaml
+# Remove the comments from the release section
+release:
+  if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+  needs: build
+  runs-on: ubuntu-latest
+  # ... rest of release job
+```
 
 ## Creating a Release
 
