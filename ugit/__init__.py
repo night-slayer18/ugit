@@ -5,13 +5,38 @@ ugit is a simplified version control system that demonstrates the core concepts
 of Git including object storage, staging, committing, and basic history.
 """
 
-__version__ = "1.0.0"
-__author__ = "night-slayer18"
+# Version is managed by setuptools_scm at build time (writes ugit/_version.py).
+# Prefer the installed distribution metadata when available, otherwise fall
+# back to the setuptools_scm generated file, and finally to a safe fallback.
+try:
+    # Python 3.8+
+    from importlib.metadata import version, PackageNotFoundError  # type: ignore
+except Exception:
+    # Older Python: use the backport if available
+    try:
+        from importlib_metadata import version, PackageNotFoundError  # type: ignore
+    except Exception:
+        version = None
+        PackageNotFoundError = Exception  # type: ignore
 
-# Core functionality is available but not auto-imported to avoid circular imports
-# Import modules explicitly when needed:
-# from ugit.core.repository import Repository
-# from ugit.core.objects import hash_object, get_object
-# from ugit.commands import init, add, commit, log, checkout, status
+__version__ = "0+unknown"
+if version is not None:
+    try:
+        # If package is installed, this returns the distribution version (preferred).
+        __version__ = version("ugit")
+    except PackageNotFoundError:
+        # Not installed into the environment — fall back to generated file.
+        try:
+            from ._version import __version__  # type: ignore
+        except Exception:
+            __version__ = "0+unknown"
+else:
+    # If importlib.metadata/importlib_metadata not available, still try the generated file.
+    try:
+        from ._version import __version__  # type: ignore
+    except Exception:
+        __version__ = "0+unknown"
+
+__author__ = "night-slayer18"
 
 __all__ = ["__version__", "__author__"]

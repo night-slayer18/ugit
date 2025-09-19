@@ -1,32 +1,40 @@
+# pyproject.toml — schema-friendly setuptools_scm configuration
+# Tag releases like: git tag v1.0.2 && git push --tags
+# setuptools_scm will produce version "1.0.2" and write it into ugit/_version.py
+
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = [
+  "setuptools>=80",
+  "wheel",
+  "setuptools_scm[toml]>=8"
+]
 build-backend = "setuptools.build_meta"
 
 [project]
+dynamic = ["version"]
 name = "ugit"
-version = "1.0.0"
 description = "A minimal Git implementation in Python"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = { file = "LICENSE" }
 authors = [
-    {name = "night-slayer18"},
+  { name = "night-slayer18" }
 ]
 keywords = ["git", "version-control", "vcs", "educational", "minimal"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Education", 
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Version Control",
-    "Topic :: Education",
-    "Topic :: Utilities",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Version Control",
+  "Topic :: Education",
+  "Topic :: Utilities",
 ]
 
 [project.urls]
@@ -40,17 +48,17 @@ ugit = "ugit.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0", 
-    "black>=22.0.0",
-    "isort>=5.10.0",
-    "flake8>=5.0.0",
-    "mypy>=1.0.0",
-    "pre-commit>=2.20.0",
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "black>=22.0.0",
+  "isort>=5.10.0",
+  "flake8>=5.0.0",
+  "mypy>=1.0.0",
+  "pre-commit>=2.20.0",
 ]
 docs = [
-    "sphinx>=5.0.0",
-    "sphinx-rtd-theme>=1.0.0",
+  "sphinx>=5.0.0",
+  "sphinx-rtd-theme>=1.0.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -58,9 +66,15 @@ where = ["."]
 include = ["ugit*"]
 exclude = ["tests*"]
 
+[tool.setuptools_scm]
+# Modern, schema-friendly options — write the discovered version into ugit/_version.py
+version_file = "ugit/_version.py"
+version_file_template = "__version__ = \"{version}\"\n"
+fallback_version = "0+unknown"
+
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py39']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -109,14 +123,14 @@ omit = ["*/tests/*", "*/test_*"]
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
 ]
