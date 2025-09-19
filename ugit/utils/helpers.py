@@ -2,7 +2,7 @@
 
 import os
 import time
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 if TYPE_CHECKING:
     from ..core.repository import Repository
@@ -42,7 +42,9 @@ def format_timestamp(timestamp: str) -> str:
         return timestamp
 
 
-def walk_files(directory: str = ".", ignore_patterns: list = None) -> Iterator[str]:
+def walk_files(
+    directory: str = ".", ignore_patterns: Optional[list] = None
+) -> Iterator[str]:
     """
     Walk files in directory, respecting ignore patterns.
 
@@ -112,7 +114,7 @@ def ensure_repository() -> "Repository":
     return repo
 
 
-def get_commit_data(commit_sha: str) -> dict:
+def get_commit_data(commit_sha: str) -> Dict[str, Any]:
     """
     Get commit data from SHA.
 
@@ -133,6 +135,9 @@ def get_commit_data(commit_sha: str) -> dict:
         type_, data = get_object(commit_sha)
         if type_ != "commit":
             raise ValueError(f"Expected commit object, got {type_}")
-        return json.loads(data.decode())
+        result = json.loads(data.decode())
+        if not isinstance(result, dict):
+            raise ValueError(f"Invalid commit data format")
+        return result
     except (json.JSONDecodeError, FileNotFoundError) as e:
         raise ValueError(f"Invalid commit {commit_sha}: {e}")

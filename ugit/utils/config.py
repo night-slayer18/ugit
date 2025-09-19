@@ -49,11 +49,11 @@ class Config:
 
     def get_user_name(self) -> str:
         """Get configured user name."""
-        return self.get("user", "name", "Your Name")
+        return self.get("user", "name", "Your Name") or "Your Name"
 
     def get_user_email(self) -> str:
         """Get configured user email."""
-        return self.get("user", "email", "you@example.com")
+        return self.get("user", "email", "you@example.com") or "you@example.com"
 
     def get_author_string(self) -> str:
         """Get formatted author string."""

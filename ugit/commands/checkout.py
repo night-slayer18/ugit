@@ -35,7 +35,7 @@ def checkout(commit_sha: str) -> None:
         tree = json.loads(tree_data.decode())
 
         # Clear existing files (except .ugit and main files)
-        _clear_working_directory(repo)
+        _clear_working_directory()
 
         # Write files from the tree
         for path, sha in tree:
