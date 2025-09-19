@@ -1,0 +1,2 @@
+# ugit has no runtime dependencies - it's a pure Python implementation
+# This file is used for security scanning in CI
