@@ -6,7 +6,7 @@ Thank you for your interest in contributing to ugit! This document provides guid
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.8 or higher
 - Git
 - Basic understanding of version control concepts
 
@@ -14,7 +14,7 @@ Thank you for your interest in contributing to ugit! This document provides guid
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/night-slayer18/ugit.git
+   git clone https://github.com/YOUR-USERNAME/ugit.git
    cd ugit
    ```
 
