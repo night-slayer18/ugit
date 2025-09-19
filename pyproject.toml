@@ -67,10 +67,9 @@ include = ["ugit*"]
 exclude = ["tests*"]
 
 [tool.setuptools_scm]
-# Modern, schema-friendly options — write the discovered version into ugit/_version.py
-version_file = "ugit/_version.py"
-version_file_template = "__version__ = \"{version}\"\n"
-fallback_version = "0+unknown"
+# Writes the discovered version into this file at build time.
+write_to = "ugit/_version.py"
+fallback_version = "0.1.0.dev0"
 
 [tool.black]
 line-length = 88
