@@ -35,7 +35,7 @@ def hash_object(data: bytes, type_: str = "blob", write: bool = True) -> str:
 
     header = f"{type_} {len(data)}\0".encode()
     full_data = header + data
-    sha = hashlib.sha1(full_data).hexdigest()
+    sha = hashlib.sha1(full_data, usedforsecurity=False).hexdigest()
 
     if write:
         try:

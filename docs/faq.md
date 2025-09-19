@@ -33,7 +33,7 @@ ugit is suitable for:
 
 ### What are the system requirements?
 
-- Python 3.8 or higher
+- Python 3.9 or higher
 - Operating System: macOS, Linux, or Windows
 - About 10MB of disk space
 

@@ -81,7 +81,7 @@ python --version
 ```
 
 **Solutions**:
-- ugit requires Python 3.8 or higher
+- ugit requires Python 3.9 or higher
 - Update Python or use a newer version
 - Use pyenv to manage multiple Python versions
 

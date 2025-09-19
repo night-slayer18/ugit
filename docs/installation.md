@@ -4,7 +4,7 @@ This guide will help you install ugit on your system.
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.9 or higher
 - pip (Python package installer)
 
 ## Installation Methods
@@ -115,7 +115,7 @@ For contributors and developers:
 - Solution: Ensure you're using the correct Python environment where ugit was installed
 
 **Issue: Python version compatibility**
-- Solution: ugit requires Python 3.8+. Check your Python version with `python --version`
+- Solution: ugit requires Python 3.9+. Check your Python version with `python --version`
 
 ### Getting Help
 

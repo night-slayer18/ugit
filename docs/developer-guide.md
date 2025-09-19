@@ -17,7 +17,7 @@ Welcome to the ugit developer guide! This document will help you get started wit
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.9 or higher
 - Git
 - Basic understanding of version control concepts
 - Familiarity with Python development
