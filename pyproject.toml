@@ -4,7 +4,7 @@
 
 [build-system]
 requires = [
-  "setuptools>=80",
+  "setuptools>=61.0",
   "wheel",
   "setuptools_scm[toml]>=8"
 ]
@@ -16,9 +16,9 @@ name = "ugit"
 description = "A minimal Git implementation in Python"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
-license = { file = "LICENSE" }
+license = { text = "MIT" }
 authors = [
-  { name = "night-slayer18" }
+  { name = "night-slayer18", email = "night-slayer18@users.noreply.github.com" }
 ]
 keywords = ["git", "version-control", "vcs", "educational", "minimal"]
 classifiers = [
@@ -68,7 +68,6 @@ exclude = ["tests*"]
 
 [tool.setuptools_scm]
 # Let setuptools_scm handle version discovery from git tags
-# No extra configuration needed - this is the standard approach
 
 [tool.black]
 line-length = 88

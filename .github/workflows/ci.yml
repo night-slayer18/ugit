@@ -92,6 +92,9 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        # Fetch full history for setuptools_scm
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -101,7 +104,11 @@ jobs:
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build twine
+        pip install build>=0.10.0 twine>=4.0.0
+        
+    - name: Clean previous builds
+      run: |
+        rm -rf build/ dist/ *.egg-info/
         
     - name: Build package
       run: |
@@ -109,7 +116,7 @@ jobs:
         
     - name: Check package
       run: |
-        twine check dist/*
+        python -m twine check dist/* --strict
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -117,6 +124,7 @@ jobs:
         name: dist
         path: dist/
 
+        
   release:
     if: startsWith(github.ref, 'refs/tags/') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: build
