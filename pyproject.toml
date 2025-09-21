@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=75.8.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ugit"
-version = "1.0.0"
+version = "1.1.0"
 description = "A minimal Git implementation in Python"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"  
 authors = [
     {name = "night-slayer18"},
 ]
@@ -16,8 +16,7 @@ keywords = ["git", "version-control", "vcs", "educational", "minimal"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "Intended Audience :: Education", 
-    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Education",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -57,6 +56,10 @@ docs = [
 where = ["."]
 include = ["ugit*"]
 exclude = ["tests*"]
+
+# Add this section to ensure LICENSE file is included
+[tool.setuptools.package-data]
+ugit = ["LICENSE"]
 
 [tool.black]
 line-length = 88
