@@ -130,11 +130,14 @@ jobs:
     - name: Check if TestPyPI token is available
       id: check-token
       run: |
+        echo "🔍 Checking for TestPyPI API token..."
         if [ -n "${{ secrets.TEST_PYPI_API_TOKEN }}" ]; then
+          echo "✅ TestPyPI token found - upload will proceed"
           echo "token-available=true" >> $GITHUB_OUTPUT
         else
+          echo "❌ TEST_PYPI_API_TOKEN secret not configured"
+          echo "💡 To enable TestPyPI publishing, add TEST_PYPI_API_TOKEN secret to repository settings"
           echo "token-available=false" >> $GITHUB_OUTPUT
-          echo "⚠️ TEST_PYPI_API_TOKEN secret not configured - skipping TestPyPI upload"
         fi
         
     - name: Publish to TestPyPI
@@ -150,18 +153,29 @@ jobs:
         
     - name: Log release info
       run: |
+        echo "=================== RELEASE SUMMARY ==================="
         echo "✅ Build artifacts created successfully for tag: ${{ github.ref_name }}"
+        echo ""
         echo "📦 Package files:"
         ls -la dist/
+        echo ""
+        echo "🔍 TestPyPI Upload Status:"
         if [ "${{ steps.check-token.outputs.token-available }}" == "true" ]; then
           if [ "${{ steps.twine_upload.outcome }}" == "success" ]; then
-            echo "🚀 Package uploaded to TestPyPI"
+            echo "🚀 SUCCESS: Package uploaded to TestPyPI"
+            echo "🔗 View at: https://test.pypi.org/project/ugit/"
           else
-            echo "⚠️ TestPyPI upload failed. Check the logs from the 'Publish to TestPyPI' step."
+            echo "❌ FAILED: TestPyPI upload failed"
+            echo "💡 Check the 'Publish to TestPyPI' step logs above for details"
           fi
         else
-          echo "💡 To enable TestPyPI publishing, add TEST_PYPI_API_TOKEN secret to repository"
+          echo "⏭️  SKIPPED: No TestPyPI token configured"
+          echo "💡 To enable TestPyPI publishing:"
+          echo "   1. Go to https://test.pypi.org/account/login/"
+          echo "   2. Create an API token"
+          echo "   3. Add it as TEST_PYPI_API_TOKEN secret in GitHub repository settings"
         fi
+        echo "========================================================"
         
     # Uncomment when ready for production releases
     # - name: Publish to PyPI
