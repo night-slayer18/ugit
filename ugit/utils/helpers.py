@@ -1,7 +1,6 @@
 """Utility functions for ugit."""
 
 import os
-import time
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 if TYPE_CHECKING:
@@ -117,16 +116,16 @@ def ensure_repository() -> "Repository":
 def get_ignored_patterns(repo_path: str = ".") -> list:
     """
     Get ignore patterns from .ugitignore file.
-    
+
     Args:
         repo_path: Path to repository root
-    
+
     Returns:
         List of ignore patterns
     """
     patterns = [".ugit"]  # Always ignore .ugit directory
     ignore_file = os.path.join(repo_path, ".ugitignore")
-    
+
     if os.path.exists(ignore_file):
         try:
             with open(ignore_file, "r", encoding="utf-8") as f:
@@ -137,7 +136,7 @@ def get_ignored_patterns(repo_path: str = ".") -> list:
                         patterns.append(line)
         except (IOError, OSError):
             pass
-    
+
     return patterns
 
 
@@ -164,7 +163,7 @@ def get_commit_data(commit_sha: str) -> Dict[str, Any]:
             raise ValueError(f"Expected commit object, got {type_}")
         result = json.loads(data.decode())
         if not isinstance(result, dict):
-            raise ValueError(f"Invalid commit data format")
+            raise ValueError("Invalid commit data format")
         return result
     except (json.JSONDecodeError, FileNotFoundError) as e:
         raise ValueError(f"Invalid commit {commit_sha}: {e}")

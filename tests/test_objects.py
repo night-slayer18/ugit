@@ -2,7 +2,6 @@
 
 import os
 import tempfile
-from pathlib import Path
 
 from ugit.core.objects import get_object, hash_object, object_exists
 

@@ -1,0 +1,6 @@
+# ugit ignore patterns - files and directories to ignore
+*.pyc
+__pycache__/
+.DS_Store
+*.tmp
+*.log

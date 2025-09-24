@@ -7,7 +7,23 @@ import argparse
 import sys
 from typing import List, Optional
 
-from .commands import add, branch, checkout, checkout_branch, commit, diff, init, log, status
+from .commands import (
+    add,
+    branch,
+    checkout,
+    commit,
+    diff,
+    init,
+    log,
+    merge,
+    reset,
+    stash,
+    stash_apply,
+    stash_drop,
+    stash_list,
+    stash_pop,
+    status,
+)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -24,22 +40,30 @@ Examples:
   ugit commit -m "message"      Create a commit
   ugit status                   Show repository status
   ugit log                      Show commit history
+  ugit log --oneline            Show compact commit history
+  ugit log --graph              Show commit graph
   ugit checkout <commit>        Checkout a specific commit
   ugit checkout <branch>        Switch to a branch
   ugit checkout -b <branch>     Create and switch to a branch
   ugit branch                   List branches
   ugit branch <name>            Create a branch
   ugit branch -d <name>         Delete a branch
+  ugit merge <branch>           Merge a branch
   ugit diff                     Show changes in working directory
   ugit diff --staged            Show staged changes
   ugit diff <commit1> <commit2> Compare two commits
+  ugit reset                    Unstage all files
+  ugit reset --hard <commit>    Reset to commit (destructive)
+  ugit stash                    Stash current changes
+  ugit stash pop                Apply and remove most recent stash
+  ugit stash list               List all stashes
         """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # init command
-    init_parser = subparsers.add_parser("init", help="Initialize a new repository")
+    subparsers.add_parser("init", help="Initialize a new repository")
 
     # add command
     add_parser = subparsers.add_parser("add", help="Add files to staging area")
@@ -51,30 +75,107 @@ Examples:
     commit_parser.add_argument("--author", help="Author information")
 
     # status command
-    status_parser = subparsers.add_parser("status", help="Show repository status")
+    subparsers.add_parser("status", help="Show repository status")
 
     # log command
     log_parser = subparsers.add_parser("log", help="Show commit history")
     log_parser.add_argument(
         "-n", "--max-count", type=int, help="Limit number of commits to show"
     )
+    log_parser.add_argument(
+        "--oneline", action="store_true", help="Show each commit on one line"
+    )
+    log_parser.add_argument("--graph", action="store_true", help="Show ASCII graph")
+    log_parser.add_argument("--since", help="Show commits since date")
+    log_parser.add_argument("--until", help="Show commits until date")
 
     # checkout command
-    checkout_parser = subparsers.add_parser("checkout", help="Checkout a commit or switch to a branch")
+    checkout_parser = subparsers.add_parser(
+        "checkout", help="Checkout a commit or switch to a branch"
+    )
     checkout_parser.add_argument("target", help="Commit SHA or branch name to checkout")
-    checkout_parser.add_argument("-b", "--branch", action="store_true", help="Create new branch")
+    checkout_parser.add_argument(
+        "-b", "--branch", action="store_true", help="Create new branch"
+    )
 
     # branch command
-    branch_parser = subparsers.add_parser("branch", help="List, create, or delete branches")
+    branch_parser = subparsers.add_parser(
+        "branch", help="List, create, or delete branches"
+    )
     branch_parser.add_argument("name", nargs="?", help="Branch name to create")
-    branch_parser.add_argument("-l", "--list", action="store_true", help="List branches")
+    branch_parser.add_argument(
+        "-l", "--list", action="store_true", help="List branches"
+    )
     branch_parser.add_argument("-d", "--delete", help="Delete a branch")
+
+    # merge command
+    merge_parser = subparsers.add_parser(
+        "merge", help="Merge a branch into current branch"
+    )
+    merge_parser.add_argument("branch", help="Branch name to merge")
+    merge_parser.add_argument("--no-ff", action="store_true", help="Force merge commit")
 
     # diff command
     diff_parser = subparsers.add_parser("diff", help="Show changes between files")
-    diff_parser.add_argument("--staged", action="store_true", help="Show staged changes")
+    diff_parser.add_argument(
+        "--staged", action="store_true", help="Show staged changes"
+    )
     diff_parser.add_argument("commit1", nargs="?", help="First commit to compare")
     diff_parser.add_argument("commit2", nargs="?", help="Second commit to compare")
+
+    # reset command
+    reset_parser = subparsers.add_parser(
+        "reset", help="Reset current HEAD to specified state"
+    )
+    reset_parser.add_argument(
+        "target", nargs="?", help="Commit SHA or branch to reset to"
+    )
+    reset_parser.add_argument(
+        "--hard", action="store_true", help="Reset working directory and staging area"
+    )
+    reset_parser.add_argument("--soft", action="store_true", help="Only move HEAD")
+
+    # stash command
+    stash_parser = subparsers.add_parser(
+        "stash", help="Stash changes in working directory"
+    )
+    stash_subparsers = stash_parser.add_subparsers(
+        dest="stash_command", help="Stash commands"
+    )
+
+    # stash (default - save)
+    stash_save = stash_subparsers.add_parser("save", help="Save changes to stash")
+    stash_save.add_argument("message", nargs="?", help="Stash message")
+    stash_save.add_argument(
+        "-u", "--include-untracked", action="store_true", help="Include untracked files"
+    )
+
+    # stash pop
+    stash_pop_parser = stash_subparsers.add_parser(
+        "pop", help="Apply and remove most recent stash"
+    )
+    stash_pop_parser.add_argument(
+        "stash_id", nargs="?", type=int, default=0, help="Stash index"
+    )
+
+    # stash list
+    stash_subparsers.add_parser("list", help="List all stashes")
+
+    # stash apply
+    stash_apply_parser = stash_subparsers.add_parser(
+        "apply", help="Apply stash without removing it"
+    )
+    stash_apply_parser.add_argument(
+        "stash_id", nargs="?", type=int, default=0, help="Stash index"
+    )
+
+    # stash drop
+    stash_drop_parser = stash_subparsers.add_parser(
+        "drop", help="Remove stash without applying"
+    )
+    stash_drop_parser.add_argument(
+        "stash_id", nargs="?", type=int, default=0, help="Stash index"
+    )
 
     return parser
 
@@ -99,16 +200,36 @@ def main(argv: Optional[List[str]] = None) -> int:
         elif args.command == "status":
             status()
         elif args.command == "log":
-            log(args.max_count)
+            log(args.max_count, args.oneline, args.graph, args.since, args.until)
         elif args.command == "checkout":
             checkout(args.target, args.branch)
         elif args.command == "branch":
             branch(args.name, args.list, args.delete)
+        elif args.command == "merge":
+            merge(args.branch, args.no_ff)
         elif args.command == "diff":
             if args.commit1 and args.commit2:
                 diff(commit1=args.commit1, commit2=args.commit2)
             else:
                 diff(staged=args.staged)
+        elif args.command == "reset":
+            reset(args.target, args.hard, args.soft)
+        elif args.command == "stash":
+            if args.stash_command == "pop":
+                stash_pop(args.stash_id)
+            elif args.stash_command == "list":
+                stash_list()
+            elif args.stash_command == "apply":
+                stash_apply(args.stash_id)
+            elif args.stash_command == "drop":
+                stash_drop(args.stash_id)
+            elif args.stash_command == "save" or args.stash_command is None:
+                message = getattr(args, "message", None)
+                include_untracked = getattr(args, "include_untracked", False)
+                stash(message, include_untracked)
+            else:
+                print(f"Unknown stash command: {args.stash_command}")
+                return 1
         else:
             print(f"Unknown command: {args.command}")
             return 1

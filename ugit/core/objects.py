@@ -8,7 +8,7 @@ hashing, storing, and retrieving objects (blobs, trees, commits).
 import hashlib
 import os
 import zlib
-from typing import Tuple, Union
+from typing import Tuple
 
 
 def hash_object(data: bytes, type_: str = "blob", write: bool = True) -> str:

@@ -7,7 +7,7 @@ import os
 from typing import List, Set
 
 from ..core.objects import get_object, hash_object
-from ..core.repository import Index, Repository
+from ..core.repository import Index
 from ..utils.helpers import ensure_repository, walk_files
 
 
