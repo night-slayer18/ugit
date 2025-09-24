@@ -6,6 +6,7 @@ from .add import add
 from .branch import branch, checkout_branch
 from .checkout import checkout
 from .commit import commit
+from .config import config
 from .diff import diff
 from .init import init
 from .log import log
@@ -18,6 +19,7 @@ __all__ = [
     "init",
     "add",
     "commit",
+    "config",
     "log",
     "checkout",
     "status",

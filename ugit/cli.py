@@ -12,6 +12,7 @@ from .commands import (
     branch,
     checkout,
     commit,
+    config,
     diff,
     init,
     log,
@@ -76,6 +77,16 @@ Examples:
 
     # status command
     subparsers.add_parser("status", help="Show repository status")
+
+    # config command
+    config_parser = subparsers.add_parser("config", help="Manage configuration")
+    config_parser.add_argument(
+        "--list", action="store_true", help="List all configuration options"
+    )
+    config_parser.add_argument(
+        "key", nargs="?", help="Configuration key (section.option)"
+    )
+    config_parser.add_argument("value", nargs="?", help="Configuration value")
 
     # log command
     log_parser = subparsers.add_parser("log", help="Show commit history")
@@ -195,8 +206,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         elif args.command == "add":
             add(args.paths)
         elif args.command == "commit":
-            author = args.author or "Your Name <you@example.com>"
-            commit(args.message, author)
+            commit(args.message, args.author)
+        elif args.command == "config":
+            config(args.key, args.value, args.list)
         elif args.command == "status":
             status()
         elif args.command == "log":

@@ -2,13 +2,14 @@
 Show repository status.
 """
 
+import fnmatch
 import json
 import os
 from typing import List, Set
 
 from ..core.objects import get_object, hash_object
 from ..core.repository import Index
-from ..utils.helpers import ensure_repository, walk_files
+from ..utils.helpers import ensure_repository, get_ignored_patterns, walk_files
 
 
 def status() -> None:
@@ -92,12 +93,42 @@ def _get_modified_files(index_data: dict) -> List[str]:
 
 
 def _get_untracked_files(tracked_files: Set[str]) -> List[str]:
-    """Get list of untracked files."""
+    """Get list of untracked files, respecting .ugitignore patterns."""
     untracked = []
+    ignored_patterns = get_ignored_patterns()
+
     for file_path in walk_files():
-        if file_path not in tracked_files:
+        if file_path not in tracked_files and not _should_ignore_file(
+            file_path, ignored_patterns
+        ):
             untracked.append(f"? {file_path}")
     return untracked
+
+
+def _should_ignore_file(file_path: str, ignored_patterns: List[str]) -> bool:
+    """Check if a file should be ignored based on patterns."""
+    for pattern in ignored_patterns:
+        # Check full path and just filename
+        if fnmatch.fnmatch(file_path, pattern) or fnmatch.fnmatch(
+            os.path.basename(file_path), pattern
+        ):
+            return True
+
+        # Handle directory patterns (ending with /)
+        if pattern.endswith("/"):
+            dir_pattern = pattern[:-1]  # Remove trailing slash
+            path_parts = file_path.split(os.sep)
+            for part in path_parts[:-1]:  # Exclude the filename itself
+                if fnmatch.fnmatch(part, dir_pattern):
+                    return True
+        else:
+            # Check if any parent directory matches the pattern
+            path_parts = file_path.split(os.sep)
+            for part in path_parts[:-1]:  # Exclude the filename itself
+                if fnmatch.fnmatch(part, pattern):
+                    return True
+
+    return False
 
 
 def _get_deleted_files(tracked_files: Set[str]) -> List[str]:
