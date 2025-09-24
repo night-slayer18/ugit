@@ -7,7 +7,7 @@ import argparse
 import sys
 from typing import List, Optional
 
-from .commands import add, checkout, commit, init, log, status
+from .commands import add, branch, checkout, checkout_branch, commit, diff, init, log, status
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -25,6 +25,14 @@ Examples:
   ugit status                   Show repository status
   ugit log                      Show commit history
   ugit checkout <commit>        Checkout a specific commit
+  ugit checkout <branch>        Switch to a branch
+  ugit checkout -b <branch>     Create and switch to a branch
+  ugit branch                   List branches
+  ugit branch <name>            Create a branch
+  ugit branch -d <name>         Delete a branch
+  ugit diff                     Show changes in working directory
+  ugit diff --staged            Show staged changes
+  ugit diff <commit1> <commit2> Compare two commits
         """,
     )
 
@@ -52,8 +60,21 @@ Examples:
     )
 
     # checkout command
-    checkout_parser = subparsers.add_parser("checkout", help="Checkout a commit")
-    checkout_parser.add_argument("commit", help="Commit SHA to checkout")
+    checkout_parser = subparsers.add_parser("checkout", help="Checkout a commit or switch to a branch")
+    checkout_parser.add_argument("target", help="Commit SHA or branch name to checkout")
+    checkout_parser.add_argument("-b", "--branch", action="store_true", help="Create new branch")
+
+    # branch command
+    branch_parser = subparsers.add_parser("branch", help="List, create, or delete branches")
+    branch_parser.add_argument("name", nargs="?", help="Branch name to create")
+    branch_parser.add_argument("-l", "--list", action="store_true", help="List branches")
+    branch_parser.add_argument("-d", "--delete", help="Delete a branch")
+
+    # diff command
+    diff_parser = subparsers.add_parser("diff", help="Show changes between files")
+    diff_parser.add_argument("--staged", action="store_true", help="Show staged changes")
+    diff_parser.add_argument("commit1", nargs="?", help="First commit to compare")
+    diff_parser.add_argument("commit2", nargs="?", help="Second commit to compare")
 
     return parser
 
@@ -80,7 +101,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         elif args.command == "log":
             log(args.max_count)
         elif args.command == "checkout":
-            checkout(args.commit)
+            checkout(args.target, args.branch)
+        elif args.command == "branch":
+            branch(args.name, args.list, args.delete)
+        elif args.command == "diff":
+            if args.commit1 and args.commit2:
+                diff(commit1=args.commit1, commit2=args.commit2)
+            else:
+                diff(staged=args.staged)
         else:
             print(f"Unknown command: {args.command}")
             return 1

@@ -114,6 +114,33 @@ def ensure_repository() -> "Repository":
     return repo
 
 
+def get_ignored_patterns(repo_path: str = ".") -> list:
+    """
+    Get ignore patterns from .ugitignore file.
+    
+    Args:
+        repo_path: Path to repository root
+    
+    Returns:
+        List of ignore patterns
+    """
+    patterns = [".ugit"]  # Always ignore .ugit directory
+    ignore_file = os.path.join(repo_path, ".ugitignore")
+    
+    if os.path.exists(ignore_file):
+        try:
+            with open(ignore_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    # Skip empty lines and comments
+                    if line and not line.startswith("#"):
+                        patterns.append(line)
+        except (IOError, OSError):
+            pass
+    
+    return patterns
+
+
 def get_commit_data(commit_sha: str) -> Dict[str, Any]:
     """
     Get commit data from SHA.
