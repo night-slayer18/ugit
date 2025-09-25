@@ -60,3 +60,22 @@ class Config:
         name = self.get_user_name()
         email = self.get_user_email()
         return f"{name} <{email}>"
+    
+    def remove(self, section: str, key: str) -> None:
+        """Remove configuration value."""
+        try:
+            self._config.remove_option(section, key)
+            # If section is now empty, remove it
+            if not self._config.options(section):
+                self._config.remove_section(section)
+            self._save()
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            pass  # Already doesn't exist
+    
+    def get_all_settings(self) -> dict:
+        """Get all configuration settings as a flat dictionary."""
+        settings = {}
+        for section_name in self._config.sections():
+            for key, value in self._config.items(section_name):
+                settings[f"{section_name}.{key}"] = value
+        return settings

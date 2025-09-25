@@ -48,7 +48,11 @@ def log(
             if since or until:
                 commit_time = commit.get("timestamp", "")
                 if not _is_commit_in_date_range(commit_time, since, until):
-                    current = commit.get("parent")
+                    parent = commit.get("parent")
+                    if parent and not parent.startswith("ref: refs/heads/"):
+                        current = parent
+                    else:
+                        current = None
                     continue
 
             if oneline:
@@ -58,7 +62,11 @@ def log(
             else:
                 _print_full_commit(current, commit)
 
-            current = commit.get("parent")
+            parent = commit.get("parent")
+            if parent and not parent.startswith("ref: refs/heads/"):
+                current = parent
+            else:
+                current = None  # No more parents to follow
             count += 1
 
         except (json.JSONDecodeError, FileNotFoundError, ValueError) as e:

@@ -11,12 +11,17 @@ from .commands import (
     add,
     branch,
     checkout,
+    clone,
     commit,
     config,
     diff,
+    fetch,
     init,
     log,
     merge,
+    pull,
+    push,
+    remote,
     reset,
     stash,
     stash_apply,
@@ -58,6 +63,12 @@ Examples:
   ugit stash                    Stash current changes
   ugit stash pop                Apply and remove most recent stash
   ugit stash list               List all stashes
+  ugit clone <url> [dir]        Clone a repository
+  ugit remote add <name> <url>  Add a remote repository
+  ugit remote -v                List remotes with URLs
+  ugit fetch [remote]           Fetch changes from remote
+  ugit pull [remote] [branch]   Fetch and merge from remote
+  ugit push [remote] [branch]   Push changes to remote
         """,
     )
 
@@ -188,6 +199,63 @@ Examples:
         "stash_id", nargs="?", type=int, default=0, help="Stash index"
     )
 
+    # clone command
+    clone_parser = subparsers.add_parser("clone", help="Clone a repository")
+    clone_parser.add_argument("url", help="Repository URL to clone")
+    clone_parser.add_argument("directory", nargs="?", help="Directory name (optional)")
+
+    # remote command
+    remote_parser = subparsers.add_parser("remote", help="Manage remote repositories")
+    remote_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Show URLs"
+    )
+    remote_subparsers = remote_parser.add_subparsers(
+        dest="subcommand", help="Remote commands"
+    )
+
+    # remote add
+    remote_add = remote_subparsers.add_parser("add", help="Add a remote")
+    remote_add.add_argument("name", help="Remote name")
+    remote_add.add_argument("url", help="Remote URL")
+
+    # remote remove
+    remote_remove = remote_subparsers.add_parser("remove", help="Remove a remote")
+    remote_remove.add_argument("name", help="Remote name")
+
+    # remote show
+    remote_show = remote_subparsers.add_parser("show", help="Show remote details")
+    remote_show.add_argument("name", help="Remote name")
+
+    # remote list (default)
+    remote_list = remote_subparsers.add_parser("list", help="List remotes")
+    remote_list.add_argument(
+        "-v", "--verbose", action="store_true", help="Show URLs"
+    )
+
+    # fetch command
+    fetch_parser = subparsers.add_parser("fetch", help="Fetch from remote repository")
+    fetch_parser.add_argument(
+        "remote", nargs="?", default="origin", help="Remote name"
+    )
+    fetch_parser.add_argument("branch", nargs="?", help="Branch name")
+
+    # pull command
+    pull_parser = subparsers.add_parser("pull", help="Fetch and merge from remote")
+    pull_parser.add_argument(
+        "remote", nargs="?", default="origin", help="Remote name"
+    )
+    pull_parser.add_argument("branch", nargs="?", help="Branch name")
+
+    # push command
+    push_parser = subparsers.add_parser("push", help="Push to remote repository")
+    push_parser.add_argument(
+        "remote", nargs="?", default="origin", help="Remote name"
+    )
+    push_parser.add_argument("branch", nargs="?", help="Branch name")
+    push_parser.add_argument(
+        "-f", "--force", action="store_true", help="Force push"
+    )
+
     return parser
 
 
@@ -242,6 +310,16 @@ def main(argv: Optional[List[str]] = None) -> int:
             else:
                 print(f"Unknown stash command: {args.stash_command}")
                 return 1
+        elif args.command == "clone":
+            clone(args.url, args.directory)
+        elif args.command == "remote":
+            remote(args)
+        elif args.command == "fetch":
+            fetch(args.remote, args.branch)
+        elif args.command == "pull":
+            pull(args.remote, args.branch)
+        elif args.command == "push":
+            push(args.remote, args.branch, args.force)
         else:
             print(f"Unknown command: {args.command}")
             return 1
