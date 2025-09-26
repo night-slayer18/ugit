@@ -37,6 +37,9 @@ cd ugit
 
 # Install in development mode
 pip install -e .
+
+# For web interface support, install with web dependencies
+pip install -e .[web]
 ```
 
 ### Basic Usage
@@ -60,6 +63,9 @@ ugit log
 
 # Checkout a specific commit
 ugit checkout <commit-sha>
+
+# Start web interface (requires web dependencies)
+ugit serve
 ```
 
 ## 📁 Project Structure
@@ -117,6 +123,7 @@ ugit implements the core Git concepts:
 | `status` | Show status | `ugit status` |
 | `log` | Show history | `ugit log` |
 | `checkout` | Restore files | `ugit checkout abc123` |
+| `serve` | Start web interface | `ugit serve` |
 
 ## 🧪 Development
 

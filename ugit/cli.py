@@ -23,6 +23,7 @@ from .commands import (
     push,
     remote,
     reset,
+    serve,
     stash,
     stash_apply,
     stash_drop,
@@ -256,6 +257,18 @@ Examples:
         "-f", "--force", action="store_true", help="Force push"
     )
 
+    # serve command
+    serve_parser = subparsers.add_parser("serve", help="Start web interface server")
+    serve_parser.add_argument(
+        "--port", type=int, default=8000, help="Port to run server on (default: 8000)"
+    )
+    serve_parser.add_argument(
+        "--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)"
+    )
+    serve_parser.add_argument(
+        "--no-browser", action="store_true", help="Don't open browser automatically"
+    )
+
     return parser
 
 
@@ -320,6 +333,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             pull(args.remote, args.branch)
         elif args.command == "push":
             push(args.remote, args.branch, args.force)
+        elif args.command == "serve":
+            serve(args.port, args.host, not args.no_browser)
         else:
             print(f"Unknown command: {args.command}")
             return 1
