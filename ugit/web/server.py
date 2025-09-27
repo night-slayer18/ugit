@@ -8,11 +8,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from starlette.responses import FileResponse, Response
+from fastapi import FastAPI, HTTPException, Request  # type: ignore[import-not-found]
+from fastapi.responses import HTMLResponse, JSONResponse  # type: ignore[import-not-found]
+from fastapi.staticfiles import StaticFiles  # type: ignore[import-not-found]
+from fastapi.templating import Jinja2Templates  # type: ignore[import-not-found]
+from starlette.responses import FileResponse, Response  # type: ignore[import-not-found]
 
 from ugit.commands import diff, log
 from ugit.core.objects import get_object
@@ -44,7 +44,7 @@ class UgitWebServer:
     def _setup_routes(self) -> None:
         """Setup all web routes"""
 
-        @self.app.get("/", response_class=HTMLResponse)
+        @self.app.get("/", response_class=HTMLResponse)  # type: ignore[misc]
         async def home(request: Request) -> HTMLResponse:
             """Main repository view"""
             return self.templates.TemplateResponse(
@@ -56,7 +56,7 @@ class UgitWebServer:
                 },
             )
 
-        @self.app.get("/api/files")
+        @self.app.get("/api/files")  # type: ignore[misc]
         async def list_files(path: str = "", commit: str = "HEAD") -> Any:
             """List files and directories from the committed tree (repository view)"""
             try:
@@ -306,7 +306,7 @@ class UgitWebServer:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.get("/api/file")
+        @self.app.get("/api/file")  # type: ignore[misc]
         async def get_file_content(path: str, commit: str = "HEAD") -> Any:
             """Get content of a specific file from the committed tree"""
             try:
@@ -433,7 +433,7 @@ class UgitWebServer:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.get("/api/commits")
+        @self.app.get("/api/commits")  # type: ignore[misc]
         async def get_commits(limit: int = 50, offset: int = 0) -> Any:
             """Get commit history"""
             try:
@@ -547,7 +547,7 @@ class UgitWebServer:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.get("/api/commit/{sha}")
+        @self.app.get("/api/commit/{sha}")  # type: ignore[misc]
         async def get_commit_details(sha: str) -> Any:
             """Get details of a specific commit"""
             try:
@@ -872,7 +872,7 @@ def create_app(repo_path: str = ".") -> FastAPI:
 
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # type: ignore[import-not-found]
 
     app = create_app()
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)

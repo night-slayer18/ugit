@@ -39,7 +39,7 @@ def serve(
 
         # Import and start the web server
         try:
-            import uvicorn
+            import uvicorn  # type: ignore[import-not-found]
 
             from ugit.web.server import create_app
         except ImportError as e:
