@@ -8,11 +8,14 @@ import subprocess
 import sys
 import webbrowser
 from pathlib import Path
+from typing import Optional
 
 from ugit.utils.helpers import ensure_repository
 
 
-def serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True):
+def serve(
+    port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True
+) -> Optional[int]:
     """
     Start the ugit web interface server.
 
@@ -54,11 +57,11 @@ def serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True):
         # Open browser if requested
         if open_browser:
 
-            def open_browser_delayed():
+            def open_browser_delayed() -> None:
                 import threading
                 import time
 
-                def delayed_open():
+                def delayed_open() -> None:
                     time.sleep(1.5)  # Wait for server to start
                     webbrowser.open(f"http://{host}:{port}")
 
@@ -70,6 +73,7 @@ def serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True):
 
         # Start the server
         uvicorn.run(app, host=host, port=port, log_level="info", access_log=True)
+        return 0
 
     except KeyboardInterrupt:
         print("\nServer stopped by user")

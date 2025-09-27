@@ -7,14 +7,14 @@ This module handles stashing and restoring changes.
 import json
 import os
 import time
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.objects import get_object, hash_object
 from ..core.repository import Repository
 from ..utils.helpers import ensure_repository, get_ignored_patterns
 
 
-def stash(message: str = None, include_untracked: bool = False) -> None:
+def stash(message: Optional[str] = None, include_untracked: bool = False) -> None:
     """
     Stash current changes in working directory and staging area.
 
@@ -142,7 +142,7 @@ def stash_clear() -> None:
 def _get_staged_files(repo: Repository) -> Dict[str, str]:
     """Get all currently staged files."""
     index_path = os.path.join(repo.ugit_dir, "index")
-    staged_files = {}
+    staged_files: Dict[str, str] = {}
 
     if not os.path.exists(index_path):
         return staged_files
@@ -239,7 +239,7 @@ def _get_stash(repo: Repository, stash_id: int) -> Optional[Dict]:
     return None
 
 
-def _get_all_stashes(repo: Repository) -> List[Dict]:
+def _get_all_stashes(repo: Repository) -> List[Dict[str, Any]]:
     """Get all stashes."""
     stash_file = os.path.join(repo.ugit_dir, "stash")
 
@@ -248,7 +248,8 @@ def _get_all_stashes(repo: Repository) -> List[Dict]:
 
     try:
         with open(stash_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            result = json.load(f)
+            return result if isinstance(result, list) else []
     except (json.JSONDecodeError, IOError):
         return []
 

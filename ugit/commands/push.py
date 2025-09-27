@@ -239,7 +239,7 @@ def _push_objects(repo: Repository, remote_url: str, start_sha: str) -> int:
     local_objects_dir = os.path.join(repo.ugit_dir, "objects")
 
     # Find all objects we need to push
-    objects_to_push = set()
+    objects_to_push: Set[str] = set()
     _collect_objects(start_sha, objects_to_push, set(), remote_url)
 
     # Push objects

@@ -5,14 +5,14 @@ This module handles resetting the staging area and working directory.
 """
 
 import os
-from typing import Optional
+from typing import List, Optional
 
 from ..core.objects import get_object
 from ..core.repository import Repository
 from ..utils.helpers import ensure_repository
 
 
-def reset(target: str = None, hard: bool = False, soft: bool = False) -> None:
+def reset(target: Optional[str] = None, hard: bool = False, soft: bool = False) -> None:
     """
     Reset current HEAD to the specified state.
 
@@ -35,7 +35,7 @@ def reset(target: str = None, hard: bool = False, soft: bool = False) -> None:
         _reset_staging_area(repo)
 
 
-def unstage(file_paths: list = None) -> None:
+def unstage(file_paths: Optional[List[str]] = None) -> None:
     """
     Remove files from staging area without affecting working directory.
 

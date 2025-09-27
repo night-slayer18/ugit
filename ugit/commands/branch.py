@@ -12,9 +12,9 @@ from ..utils.helpers import ensure_repository
 
 
 def branch(
-    branch_name: str = None,
+    branch_name: Optional[str] = None,
     list_branches: bool = False,
-    delete: str = None,
+    delete: Optional[str] = None,
     create: bool = False,
 ) -> None:
     """
@@ -193,7 +193,7 @@ def _is_valid_branch_name(name: str) -> bool:
     return True
 
 
-def get_current_branch_name(repo: Repository = None) -> Optional[str]:
+def get_current_branch_name(repo: Optional[Repository] = None) -> Optional[str]:
     """Get current branch name (utility function for other modules)."""
     if repo is None:
         repo = Repository()

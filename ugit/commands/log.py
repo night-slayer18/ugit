@@ -14,8 +14,8 @@ def log(
     max_commits: Optional[int] = None,
     oneline: bool = False,
     graph: bool = False,
-    since: str = None,
-    until: str = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
 ) -> None:
     """
     Display commit history.
@@ -111,7 +111,7 @@ def _print_graph_commit(commit_sha: str, commit: dict, is_first: bool) -> None:
 
 
 def _is_commit_in_date_range(
-    commit_time: str, since: str = None, until: str = None
+    commit_time: str, since: Optional[str] = None, until: Optional[str] = None
 ) -> bool:
     """Check if commit is within date range."""
     if not since and not until:
@@ -148,8 +148,8 @@ def _parse_relative_date(date_str: str, now: datetime) -> Optional[datetime]:
         if "ago" in date_str.lower():
             parts = date_str.lower().replace("ago", "").strip().split()
             if len(parts) == 2:
-                value, unit = parts
-                value = int(value)
+                value_str, unit = parts
+                value = int(value_str)
 
                 if unit.startswith("day"):
                     return now - timedelta(days=value)

@@ -5,13 +5,13 @@ This module handles adding, removing, listing, and showing remote repositories.
 """
 
 import os
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.repository import Repository
 from ..utils.config import Config
 
 
-def remote(args) -> None:
+def remote(args: Any) -> None:
     """
     Handle remote command with subcommands.
 
@@ -166,7 +166,7 @@ def get_all_remotes() -> Dict[str, Dict[str, str]]:
         Dictionary of remote configurations
     """
     config = Config()
-    remotes = {}
+    remotes: Dict[str, Dict[str, str]] = {}
 
     # Parse all remote.* configurations
     all_settings = config.get_all_settings()

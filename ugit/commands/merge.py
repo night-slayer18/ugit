@@ -103,6 +103,9 @@ def _fast_forward_merge(repo: Repository, target_commit: str, branch_name: str) 
     """Perform a fast-forward merge."""
     # Update current branch to point to target commit
     current_branch = _get_current_branch(repo)
+    if current_branch is None:
+        print("Error: Not on a branch (detached HEAD)")
+        return
     current_branch_path = os.path.join(repo.ugit_dir, "refs", "heads", current_branch)
 
     with open(current_branch_path, "w", encoding="utf-8") as f:
@@ -122,6 +125,9 @@ def _create_merge_commit(
 ) -> None:
     """Create a merge commit with two parents."""
     current_branch = _get_current_branch(repo)
+    if current_branch is None:
+        print("Error: Not on a branch (detached HEAD)")
+        return
 
     # Create merge commit
     import time
@@ -349,6 +355,9 @@ def _create_merge_commit_with_tree(
 ) -> None:
     """Create merge commit with specific tree."""
     current_branch = _get_current_branch(repo)
+    if current_branch is None:
+        print("Error: Not on a branch (detached HEAD)")
+        return
 
     import time
 
@@ -382,7 +391,8 @@ def _get_commit_tree(repo: Repository, commit_sha: str) -> str:
             raise ValueError(f"Not a commit: {commit_sha}")
 
         commit = json.loads(commit_data.decode())
-        return commit["tree"]
+        tree_sha: str = commit["tree"]
+        return tree_sha
 
     except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
         raise ValueError(f"Invalid commit {commit_sha}: {e}")

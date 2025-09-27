@@ -131,7 +131,7 @@ def _get_remote_refs(
     Returns:
         Dictionary of branch names to commit SHAs
     """
-    refs = {}
+    refs: Dict[str, str] = {}
     remote_heads_dir = os.path.join(remote_url, ".ugit", "refs", "heads")
 
     if not os.path.exists(remote_heads_dir):

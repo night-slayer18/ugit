@@ -9,14 +9,16 @@ This module handles comparing files between different states:
 
 import difflib
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional, Set, Tuple
 
 from ..core.objects import get_object
 from ..core.repository import Repository
 from ..utils.helpers import get_ignored_patterns
 
 
-def diff(staged: bool = False, commit1: str = None, commit2: str = None) -> None:
+def diff(
+    staged: bool = False, commit1: Optional[str] = None, commit2: Optional[str] = None
+) -> None:
     """
     Show differences between files.
 
@@ -125,7 +127,7 @@ def _diff_commits(repo: Repository, commit1: str, commit2: str) -> None:
 def _get_staged_files(repo: Repository) -> Dict[str, str]:
     """Get all staged files and their content."""
     index_path = os.path.join(repo.ugit_dir, "index")
-    staged_files = {}
+    staged_files: Dict[str, str] = {}
 
     if not os.path.exists(index_path):
         return staged_files

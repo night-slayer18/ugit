@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, Response
 
 from ugit.commands import diff, log
 from ugit.core.objects import get_object
@@ -41,11 +41,11 @@ class UgitWebServer:
         # Setup routes
         self._setup_routes()
 
-    def _setup_routes(self):
+    def _setup_routes(self) -> None:
         """Setup all web routes"""
 
         @self.app.get("/", response_class=HTMLResponse)
-        async def home(request: Request):
+        async def home(request: Request) -> HTMLResponse:
             """Main repository view"""
             return self.templates.TemplateResponse(
                 "index.html",
@@ -57,7 +57,7 @@ class UgitWebServer:
             )
 
         @self.app.get("/api/files")
-        async def list_files(path: str = "", commit: str = "HEAD"):
+        async def list_files(path: str = "", commit: str = "HEAD") -> Any:
             """List files and directories from the committed tree (repository view)"""
             try:
                 print(f"DEBUG: Requesting files for path='{path}', commit='{commit}'")
@@ -306,7 +306,7 @@ class UgitWebServer:
                 raise HTTPException(status_code=500, detail=str(e))
 
         @self.app.get("/api/file")
-        async def get_file_content(path: str, commit: str = "HEAD"):
+        async def get_file_content(path: str, commit: str = "HEAD") -> Any:
             """Get content of a specific file from the committed tree"""
             try:
                 print(
@@ -433,7 +433,7 @@ class UgitWebServer:
                 raise HTTPException(status_code=500, detail=str(e))
 
         @self.app.get("/api/commits")
-        async def get_commits(limit: int = 50, offset: int = 0):
+        async def get_commits(limit: int = 50, offset: int = 0) -> Any:
             """Get commit history"""
             try:
                 # Use ugit's log command to get commits
@@ -547,7 +547,7 @@ class UgitWebServer:
                 raise HTTPException(status_code=500, detail=str(e))
 
         @self.app.get("/api/commit/{sha}")
-        async def get_commit_details(sha: str):
+        async def get_commit_details(sha: str) -> Any:
             """Get details of a specific commit"""
             try:
                 obj_type, commit_data = get_object(sha)
@@ -583,7 +583,7 @@ class UgitWebServer:
             commit_sha = current_commit_sha
             visited = set()
             commit_count = 0
-            previous_dir_file_shas = {}
+            previous_dir_file_shas: Dict[str, str] = {}
             last_commit_with_change = None
 
             while (
