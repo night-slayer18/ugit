@@ -1,13 +1,44 @@
 # Installation Guide
 
-This guide will help you install ugit on your system.
+This guide will help you install ugit on your system with different feature sets.
 
 ## Prerequisites
 
 - Python 3.9 or higher
 - pip (Python package installer)
 
-## Installation Methods
+## Installation Options
+
+ugit offers flexible installation options depending on your needs:
+
+- **Basic Installation**: Core command-line functionality only
+- **Web Interface**: Includes beautiful web interface for repository browsing
+- **Development**: Full development environment with all tools
+
+## Quick Installation
+
+### Option 1: Basic Installation (CLI Only)
+For users who only need command-line functionality:
+
+```bash
+pip install ugit
+```
+
+### Option 2: Full Installation (CLI + Web Interface)  
+For users who want the complete experience including the web interface:
+
+```bash
+pip install ugit[web]
+```
+
+### Option 3: Development Installation
+For contributors and developers:
+
+```bash
+pip install ugit[dev,web]
+```
+
+## Detailed Installation Methods
 
 ### Method 1: Install from Source (Recommended for Development)
 
@@ -17,9 +48,21 @@ This guide will help you install ugit on your system.
    cd ugit
    ```
 
-2. **Install in development mode:**
+2. **Choose your installation type:**
+
+   **Basic installation:**
    ```bash
    pip install -e .
+   ```
+
+   **With web interface:**
+   ```bash
+   pip install -e .[web]
+   ```
+
+   **Development environment:**
+   ```bash
+   pip install -e .[dev,web]
    ```
 
 3. **Verify installation:**
@@ -29,9 +72,14 @@ This guide will help you install ugit on your system.
 
 ### Method 2: Direct Installation
 
-1. **Install directly from GitHub:**
+1. **Basic installation:**
    ```bash
    pip install git+https://github.com/night-slayer18/ugit.git
+   ```
+
+   **With web interface:**
+   ```bash
+   pip install "ugit[web] @ git+https://github.com/night-slayer18/ugit.git"
    ```
 
 2. **Verify installation:**
@@ -49,6 +97,59 @@ This guide will help you install ugit on your system.
    ```
 
 ## Post-Installation Setup
+
+### Verify Core Installation
+
+Test that ugit is working correctly:
+
+```bash
+# Check version and help
+ugit --help
+ugit --version
+
+# Create a test repository
+mkdir test-repo
+cd test-repo
+ugit init
+echo "Hello ugit!" > test.txt
+ugit add test.txt
+ugit commit -m "Test commit"
+ugit status
+```
+
+### Verify Web Interface (if installed)
+
+If you installed the web interface dependencies, test the web server:
+
+```bash
+# In any ugit repository directory
+ugit serve --help
+
+# Start the server (this should work without errors)
+ugit serve --no-browser --port 8080
+```
+
+If you see "Error: Web dependencies not installed", you need to install with the `[web]` option.
+
+### Dependencies Overview
+
+**Core Dependencies (always installed):**
+- Python standard library only - no external dependencies!
+
+**Web Interface Dependencies (optional):**
+- `fastapi` - Modern web framework
+- `uvicorn` - ASGI web server  
+- `jinja2` - Template engine
+- `python-multipart` - File upload support
+- `aiofiles` - Async file operations
+
+**Development Dependencies (optional):**
+- `pytest` - Testing framework
+- `black` - Code formatter
+- `isort` - Import sorter
+- `flake8` - Linter
+- `mypy` - Type checker
+- `pre-commit` - Git hooks
 
 ### Adding ugit to PATH
 

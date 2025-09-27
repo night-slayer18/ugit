@@ -3,6 +3,7 @@ Create commits from staged changes.
 """
 
 import json
+import os
 from datetime import datetime
 from typing import Optional
 
@@ -52,8 +53,8 @@ def commit(message: str, author: Optional[str] = None) -> None:
     commit_bytes = json.dumps(commit_data, indent=2).encode()
     commit_sha = hash_object(commit_bytes, "commit")
 
-    # Update current branch
-    repo.set_head_ref(commit_sha)
+    # Update current branch pointer
+    _update_current_branch(repo, commit_sha)
 
     print(f"Committed {commit_sha[:7]} - {message}")
 
@@ -81,3 +82,31 @@ def _write_tree(repo: Repository) -> Optional[str]:
 
     tree_data = json.dumps(tree_entries, indent=2).encode()
     return hash_object(tree_data, "tree")
+
+
+def _update_current_branch(repo: Repository, commit_sha: str) -> None:
+    """Update the current branch to point to the new commit."""
+    head_path = os.path.join(repo.ugit_dir, "HEAD")
+
+    if not os.path.exists(head_path):
+        # No HEAD file, default to main
+        repo.set_head_ref(commit_sha, "main")
+        return
+
+    try:
+        with open(head_path, "r", encoding="utf-8") as f:
+            head_content = f.read().strip()
+
+        if head_content.startswith("ref: refs/heads/"):
+            # We're on a branch, update that branch
+            branch_name = head_content[16:]  # Remove "ref: refs/heads/" prefix
+            repo.set_head_ref(commit_sha, branch_name)
+        else:
+            # Detached HEAD, just update the HEAD file directly
+            with open(head_path, "w", encoding="utf-8") as f:
+                f.write(commit_sha)
+
+    except (IOError, OSError) as e:
+        print(f"Error updating branch: {e}")
+        # Fallback to updating main
+        repo.set_head_ref(commit_sha, "main")

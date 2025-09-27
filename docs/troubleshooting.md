@@ -7,6 +7,10 @@ This guide helps you diagnose and fix common issues with ugit.
 - [Installation Issues](#installation-issues)
 - [Repository Issues](#repository-issues)
 - [Command Errors](#command-errors)
+- [Branching and Merging Issues](#branching-and-merging-issues)
+- [Stash Issues](#stash-issues)
+- [Remote Repository Issues](#remote-repository-issues)
+- [Web Interface Issues](#web-interface-issues)
 - [File System Issues](#file-system-issues)
 - [Performance Issues](#performance-issues)
 - [Data Corruption](#data-corruption)
@@ -256,6 +260,342 @@ rm .ugit/objects/ab/cdef123...
 # Or start fresh repository
 rm -rf .ugit
 ugit init
+```
+
+## Branching and Merging Issues
+
+### Branch creation fails with "already exists"
+
+**Problem**: Trying to create a branch that already exists.
+
+**Diagnosis**:
+```bash
+# Check existing branches
+ugit branch
+
+# Check if branch exists remotely
+ugit remote show origin
+```
+
+**Solutions**:
+```bash
+# Use a different branch name
+ugit branch feature/new-name
+
+# Or checkout existing branch
+ugit checkout existing-branch-name
+
+# Force create (overwrites existing)
+ugit branch -f existing-branch-name
+```
+
+### Cannot checkout branch
+
+**Problem**: Working directory has uncommitted changes or branch doesn't exist.
+
+**Diagnosis**:
+```bash
+# Check status
+ugit status
+
+# Check available branches
+ugit branch
+```
+
+**Solutions**:
+```bash
+# Commit or stash changes first
+ugit stash
+ugit checkout branch-name
+
+# Or commit changes
+ugit add .
+ugit commit -m "Save work before switching branches"
+ugit checkout branch-name
+
+# Create branch if it doesn't exist
+ugit checkout -b new-branch-name
+```
+
+### Merge conflicts
+
+**Problem**: Automatic merge failed due to conflicting changes.
+
+**Diagnosis**:
+```bash
+# Check merge status
+ugit status
+
+# View conflicted files
+ugit diff --check
+```
+
+**Solutions**:
+```bash
+# Resolve conflicts manually in each file
+# Look for conflict markers: <<<<<<<, =======, >>>>>>>
+
+# After resolving conflicts:
+ugit add conflicted-file.py
+ugit commit -m "Resolve merge conflicts"
+
+# Or abort merge if needed
+ugit merge --abort
+```
+
+## Stash Issues
+
+### Stash apply fails
+
+**Problem**: Cannot apply stash due to conflicts or working directory changes.
+
+**Diagnosis**:
+```bash
+# Check stash list
+ugit stash list
+
+# Check current status
+ugit status
+
+# Preview stash contents
+ugit stash show
+```
+
+**Solutions**:
+```bash
+# Ensure clean working directory
+ugit add .
+ugit commit -m "Save current work"
+
+# Then apply stash
+ugit stash apply
+
+# Or apply specific stash
+ugit stash apply stash@{1}
+
+# Force apply and resolve conflicts manually
+ugit stash apply --index
+```
+
+### Stash list is empty
+
+**Problem**: No stashes found when trying to apply or view.
+
+**Diagnosis**:
+```bash
+# Verify stash list
+ugit stash list -v
+
+# Check if stashes exist in .ugit directory
+ls -la .ugit/stash/
+```
+
+**Solutions**:
+```bash
+# Create a stash first
+echo "test change" >> test.txt
+ugit stash save "test stash"
+
+# Verify stash was created
+ugit stash list
+```
+
+### Cannot create stash
+
+**Problem**: Stash creation fails due to no changes or permission issues.
+
+**Diagnosis**:
+```bash
+# Check for changes to stash
+ugit status
+
+# Check .ugit directory permissions
+ls -la .ugit/
+```
+
+**Solutions**:
+```bash
+# Make sure there are changes to stash
+echo "change" >> file.txt
+
+# Create stash with message
+ugit stash save "meaningful description"
+
+# Or include untracked files
+ugit stash save --include-untracked "with untracked files"
+```
+
+## Remote Repository Issues
+
+### Cannot connect to remote
+
+**Problem**: Network issues or incorrect remote URL.
+
+**Diagnosis**:
+```bash
+# Check remote configuration
+ugit remote -v
+
+# Test network connectivity
+ping github.com
+
+# Verify remote URL format
+ugit remote show origin
+```
+
+**Solutions**:
+```bash
+# Update remote URL
+ugit remote set-url origin https://github.com/user/repo.git
+
+# Add remote if missing
+ugit remote add origin https://github.com/user/repo.git
+
+# Use SSH instead of HTTPS
+ugit remote set-url origin git@github.com:user/repo.git
+```
+
+### Push rejected
+
+**Problem**: Remote has changes that conflict with local push.
+
+**Diagnosis**:
+```bash
+# Check remote status
+ugit fetch
+ugit status
+
+# Compare with remote
+ugit log --oneline origin/main..HEAD
+```
+
+**Solutions**:
+```bash
+# Pull and merge remote changes first
+ugit pull origin main
+
+# Resolve any conflicts
+ugit add .
+ugit commit -m "Merge remote changes"
+
+# Then push
+ugit push origin main
+
+# Or force push (use with caution)
+ugit push --force origin main
+```
+
+### Authentication failed
+
+**Problem**: Invalid credentials or authentication method.
+
+**Diagnosis**:
+```bash
+# Check remote URL type
+ugit remote -v
+
+# Verify credentials if using HTTPS
+```
+
+**Solutions**:
+```bash
+# Use personal access token for HTTPS
+# Update remote URL with token
+ugit remote set-url origin https://token@github.com/user/repo.git
+
+# Or switch to SSH authentication
+ugit remote set-url origin git@github.com:user/repo.git
+
+# Verify SSH key is configured
+ssh -T git@github.com
+```
+
+## Web Interface Issues
+
+### Web server won't start
+
+**Problem**: Port already in use or permission issues.
+
+**Diagnosis**:
+```bash
+# Check if port is already in use
+lsof -i :8000
+
+# Check ugit server status
+ps aux | grep ugit
+```
+
+**Solutions**:
+```bash
+# Use different port
+ugit serve --port 8080
+
+# Kill existing process using the port
+kill $(lsof -t -i:8000)
+
+# Then start server
+ugit serve
+
+# Or specify host and port
+ugit serve --host 0.0.0.0 --port 8080
+```
+
+### Web interface shows no repositories
+
+**Problem**: Server not running in correct directory or no ugit repository.
+
+**Diagnosis**:
+```bash
+# Check if in ugit repository
+ls -la .ugit/
+
+# Verify server is running
+curl http://localhost:8000
+
+# Check server logs
+ugit serve --debug
+```
+
+**Solutions**:
+```bash
+# Navigate to repository directory first
+cd /path/to/your/ugit/repo
+ugit serve
+
+# Or initialize repository if needed
+ugit init
+ugit serve
+
+# Verify repository has commits
+ugit log --oneline
+```
+
+### Cannot access web interface remotely
+
+**Problem**: Server only listening on localhost.
+
+**Diagnosis**:
+```bash
+# Check server binding
+netstat -an | grep 8000
+
+# Check firewall settings
+```
+
+**Solutions**:
+```bash
+# Bind to all interfaces
+ugit serve --host 0.0.0.0
+
+# Or bind to specific interface
+ugit serve --host 192.168.1.100
+
+# Check firewall allows the port
+# On macOS:
+sudo pfctl -f /etc/pf.conf
+
+# On Linux:
+sudo ufw allow 8000
 ```
 
 ## File System Issues

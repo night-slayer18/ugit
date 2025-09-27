@@ -206,6 +206,159 @@ Checkout a specific commit.
 **Parameters:**
 - `commit_sha` (str): SHA of commit to checkout
 
+### `ugit.commands.branch`
+
+#### `branch(name: Optional[str] = None, list_branches: bool = False, delete: Optional[str] = None) -> None`
+
+Manage branches.
+
+**Parameters:**
+- `name` (Optional[str]): Branch name to create
+- `list_branches` (bool): List all branches
+- `delete` (Optional[str]): Branch name to delete
+
+### `ugit.commands.merge`
+
+#### `merge(branch_name: str, no_ff: bool = False) -> None`
+
+Merge a branch into current branch.
+
+**Parameters:**
+- `branch_name` (str): Name of branch to merge
+- `no_ff` (bool): Force creation of merge commit
+
+### `ugit.commands.diff`
+
+#### `diff(staged: bool = False, commit1: Optional[str] = None, commit2: Optional[str] = None) -> None`
+
+Show differences between commits, staged changes, or working directory.
+
+**Parameters:**
+- `staged` (bool): Show staged changes vs last commit
+- `commit1` (Optional[str]): First commit to compare
+- `commit2` (Optional[str]): Second commit to compare
+
+### `ugit.commands.reset`
+
+#### `reset(target: Optional[str] = None, hard: bool = False, soft: bool = False) -> None`
+
+Reset current HEAD to specified state.
+
+**Parameters:**
+- `target` (Optional[str]): Commit to reset to
+- `hard` (bool): Reset working directory and index
+- `soft` (bool): Reset only HEAD (keep changes)
+
+### `ugit.commands.stash`
+
+#### `stash(message: Optional[str] = None, include_untracked: bool = False) -> None`
+
+Stash changes in working directory.
+
+**Parameters:**
+- `message` (Optional[str]): Stash message
+- `include_untracked` (bool): Include untracked files
+
+#### `stash_pop(stash_id: int = 0) -> None`
+
+Apply and remove stash.
+
+**Parameters:**
+- `stash_id` (int): Index of stash to pop
+
+#### `stash_list() -> None`
+
+List all stashes.
+
+#### `stash_apply(stash_id: int = 0) -> None`
+
+Apply stash without removing it.
+
+**Parameters:**
+- `stash_id` (int): Index of stash to apply
+
+#### `stash_drop(stash_id: int = 0) -> None`
+
+Remove stash without applying.
+
+**Parameters:**
+- `stash_id` (int): Index of stash to drop
+
+### `ugit.commands.clone`
+
+#### `clone(url: str, directory: Optional[str] = None) -> None`
+
+Clone a repository.
+
+**Parameters:**
+- `url` (str): Repository URL to clone
+- `directory` (Optional[str]): Local directory name
+
+### `ugit.commands.remote`
+
+#### `remote(args: Any) -> None`
+
+Manage remote repositories.
+
+**Parameters:**
+- `args` (Any): Parsed command arguments with subcommands (add, remove, show, list)
+
+### `ugit.commands.fetch`
+
+#### `fetch(remote: str = "origin", branch: Optional[str] = None) -> None`
+
+Fetch from remote repository.
+
+**Parameters:**
+- `remote` (str): Remote name
+- `branch` (Optional[str]): Branch to fetch
+
+### `ugit.commands.pull`
+
+#### `pull(remote: str = "origin", branch: Optional[str] = None) -> None`
+
+Fetch and merge from remote repository.
+
+**Parameters:**
+- `remote` (str): Remote name
+- `branch` (Optional[str]): Branch to pull
+
+### `ugit.commands.push`
+
+#### `push(remote: str = "origin", branch: Optional[str] = None, force: bool = False) -> None`
+
+Push to remote repository.
+
+**Parameters:**
+- `remote` (str): Remote name
+- `branch` (Optional[str]): Branch to push
+- `force` (bool): Force push
+
+### `ugit.commands.config`
+
+#### `config(key: Optional[str] = None, value: Optional[str] = None, list_all: bool = False) -> None`
+
+Manage configuration.
+
+**Parameters:**
+- `key` (Optional[str]): Configuration key
+- `value` (Optional[str]): Configuration value
+- `list_all` (bool): List all configuration
+
+### `ugit.commands.serve`
+
+#### `serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True) -> Optional[int]`
+
+Start web interface server.
+
+**Parameters:**
+- `port` (int): Port to run server on
+- `host` (str): Host to bind to
+- `open_browser` (bool): Open browser automatically
+
+**Returns:**
+- `Optional[int]`: Exit code (0 for success)
+
 ## Utility Modules
 
 ### `ugit.utils.helpers`
