@@ -30,10 +30,12 @@ def config(
     elif key is None and value is None:
         _show_help()
     elif value is None:
-        assert key is not None  # We know this from the elif condition
+        if key is None:
+            raise ValueError("Key cannot be None when getting config value")
         _get_config(config_obj, key)
     else:
-        assert key is not None  # We know this from the else condition
+        if key is None:
+            raise ValueError("Key cannot be None when setting config value")
         _set_config(config_obj, key, value)
 
 

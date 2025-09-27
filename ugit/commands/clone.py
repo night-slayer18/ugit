@@ -85,8 +85,8 @@ def clone(url: str, directory: Optional[str] = None) -> None:
         if os.path.exists(directory):
             try:
                 shutil.rmtree(directory)
-            except:
-                pass
+            except (OSError, PermissionError) as cleanup_error:
+                print(f"warning: could not remove {directory}: {cleanup_error}")
         print(f"fatal: failed to clone repository: {e}")
     finally:
         # Always return to original directory
@@ -368,7 +368,8 @@ def _checkout_tree(repo: Repository, tree_sha: str, path: str) -> None:
                             os.makedirs(dir_path, exist_ok=True)
                         with open(entry_path, "wb") as f:
                             f.write(file_content)
-                except Exception as e:
+                except (OSError, IOError, PermissionError) as e:
+                    # Skip files that can't be written (e.g., permission issues)
                     continue
 
             elif mode.startswith("40"):  # Directory

@@ -210,9 +210,9 @@ def _fetch_objects(repo: Repository, remote_url: str, commits: Set[str]) -> None
                         if len(entry) >= 2:
                             objects_to_fetch.add(entry[1])
 
-            except Exception:
-                # If we can't parse the object, that's ok
-                pass
+            except (ValueError, IndexError, UnicodeDecodeError):
+                # If we can't parse the object, that's ok - skip it
+                continue
 
 
 def _copy_object(remote_objects_dir: str, local_objects_dir: str, sha: str) -> bool:

@@ -153,7 +153,8 @@ def _is_ancestor(repo: Repository, ancestor_sha: str, descendant_sha: str) -> bo
                     parent_sha = line[7:]
                     to_check.append(parent_sha)
 
-        except Exception:
+        except (FileNotFoundError, UnicodeDecodeError, IOError):
+            # Skip commits that can't be read or decoded
             continue
 
     return False

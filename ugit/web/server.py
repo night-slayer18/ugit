@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.responses import FileResponse, Response
@@ -191,7 +194,8 @@ class UgitWebServer:
                                     blob_type, blob_data = get_object(file_sha)
                                     if blob_type == "blob":
                                         file_info["size"] = len(blob_data)
-                                except:
+                                except (FileNotFoundError, ValueError):
+                                    # Skip files that can't be read
                                     pass
 
                             # Get last commit info for this specific file

@@ -4,6 +4,7 @@ Tests for the web interface functionality and serve command.
 
 import json
 import os
+import sys
 import tempfile
 from unittest.mock import MagicMock, patch
 
@@ -15,6 +16,11 @@ from ugit.commands.commit import commit
 from ugit.commands.init import init
 from ugit.commands.serve import serve
 from ugit.core.repository import Repository
+
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Web interface tests are skipped on Windows due to file locking issues.",
+)
 
 
 class TestServeCommand:
@@ -120,7 +126,8 @@ class TestWebServer:
             from ugit.web.server import create_app
 
             app = create_app(test_repo)
-            return TestClient(app)
+            with TestClient(app) as client:
+                yield client
         except ImportError:
             pytest.skip("Web dependencies not available")
 
