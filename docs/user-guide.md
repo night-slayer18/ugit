@@ -8,8 +8,12 @@ This comprehensive guide will teach you how to use ugit for version control.
 - [Web Interface](#web-interface)
 - [Basic Commands](#basic-commands)
 - [Working with Files](#working-with-files)
+- [Branching and Merging](#branching-and-merging)
+- [Stash Management](#stash-management)
+- [Remote Repositories](#remote-repositories)
 - [Commit History](#commit-history)
 - [Advanced Usage](#advanced-usage)
+- [Configuration](#configuration)
 - [Best Practices](#best-practices)
 
 ## Getting Started
@@ -235,6 +239,220 @@ ugit commit -m "Implement user registration
 - Add password strength requirements"
 ```
 
+## Branching and Merging
+
+Branches allow you to work on different features or experiments in isolation.
+
+### Creating and Switching Branches
+
+```bash
+# List all branches
+ugit branch
+
+# Create a new branch
+ugit branch feature-login
+
+# Switch to a branch
+ugit checkout feature-login
+
+# Create and switch to a branch in one command
+ugit checkout -b feature-payment
+
+# Delete a branch
+ugit branch -d old-feature
+```
+
+### Merging Branches
+
+```bash
+# Switch to the target branch (usually main)
+ugit checkout main
+
+# Merge another branch into current branch
+ugit merge feature-login
+
+# Force a merge commit (no fast-forward)
+ugit merge feature-payment --no-ff
+```
+
+### Branch Workflow Example
+
+```bash
+# Start from main branch
+ugit checkout main
+
+# Create feature branch
+ugit checkout -b add-user-profiles
+
+# Work on the feature
+echo "User profiles functionality" > profiles.py
+ugit add profiles.py
+ugit commit -m "Add user profiles feature"
+
+# Switch back to main
+ugit checkout main
+
+# Merge the feature
+ugit merge add-user-profiles
+
+# Clean up
+ugit branch -d add-user-profiles
+```
+
+## Stash Management
+
+Stashing lets you temporarily save changes without committing them.
+
+### Basic Stash Operations
+
+```bash
+# Stash current changes
+ugit stash
+
+# Stash with a descriptive message
+ugit stash save "Work in progress on user auth"
+
+# List all stashes
+ugit stash list
+
+# Apply the most recent stash
+ugit stash pop
+
+# Apply a specific stash by index
+ugit stash pop 1
+
+# Apply stash without removing it
+ugit stash apply
+
+# Remove a stash without applying
+ugit stash drop
+
+# Include untracked files in stash
+ugit stash -u
+```
+
+### Stash Workflow Example
+
+```bash
+# Working on feature A
+echo "Feature A code" > feature_a.py
+ugit add feature_a.py
+
+# Urgent bug fix needed - stash current work
+ugit stash save "Feature A in progress"
+
+# Fix the bug
+echo "Bug fix" > hotfix.py
+ugit add hotfix.py
+ugit commit -m "Fix critical bug"
+
+# Return to feature A
+ugit stash pop
+# Continue working on feature A
+```
+
+## Remote Repositories
+
+Work with remote repositories for collaboration and backup.
+
+### Managing Remotes
+
+```bash
+# List remotes
+ugit remote
+
+# List remotes with URLs
+ugit remote -v
+
+# Add a remote repository
+ugit remote add origin https://github.com/user/repo.git
+
+# Remove a remote
+ugit remote remove origin
+
+# Show remote details
+ugit remote show origin
+```
+
+### Cloning Repositories
+
+```bash
+# Clone a repository
+ugit clone https://github.com/user/repo.git
+
+# Clone into specific directory
+ugit clone https://github.com/user/repo.git my-local-name
+```
+
+### Fetching, Pulling, and Pushing
+
+```bash
+# Fetch changes from remote (doesn't merge)
+ugit fetch origin
+
+# Pull changes (fetch + merge)
+ugit pull origin main
+
+# Push changes to remote
+ugit push origin main
+
+# Force push (use carefully!)
+ugit push -f origin main
+```
+
+### Remote Workflow Example
+
+```bash
+# Clone repository
+ugit clone https://github.com/team/project.git
+cd project
+
+# Create feature branch
+ugit checkout -b new-feature
+
+# Make changes and commit
+echo "New feature" > feature.py
+ugit add feature.py
+ugit commit -m "Add new feature"
+
+# Push feature branch to remote
+ugit push origin new-feature
+
+# Later: merge locally and push
+ugit checkout main
+ugit merge new-feature
+ugit push origin main
+```
+
+## Configuration
+
+Configure ugit for your environment.
+
+### User Configuration
+
+```bash
+# Set your name and email (required for commits)
+ugit config user.name "Your Name"
+ugit config user.email "you@example.com"
+
+# View all configuration
+ugit config --list
+
+# View specific configuration
+ugit config user.name
+```
+
+### Configuration Example
+
+```bash
+# First time setup
+ugit config user.name "Alice Developer"
+ugit config user.email "alice@example.com"
+
+# Verify configuration
+ugit config --list
+```
+
 ## Commit History
 
 ### Viewing History
@@ -244,7 +462,40 @@ ugit commit -m "Implement user registration
 ugit log
 
 # Show limited commits
-ugit log --max-count 10
+ugit log -n 10
+
+# One line per commit (compact view)
+ugit log --oneline
+
+# Show ASCII commit graph
+ugit log --graph
+
+# Show commits since a date
+ugit log --since "2025-01-01"
+
+# Show commits until a date
+ugit log --until "2025-12-31"
+
+# Combine options
+ugit log --oneline --graph -n 5
+```
+
+### Log Output Formats
+
+**Full format** (default):
+```
+commit a1b2c3d4e5f6789012345678901234567890abcd
+Author: Alice Developer <alice@example.com>
+Date:   Fri Sep 27 10:30:00 2025
+
+    Add user authentication feature
+```
+
+**Oneline format** (`--oneline`):
+```
+a1b2c3d Add user authentication feature
+b2c3d4e Fix login validation bug
+c3d4e5f Update documentation
 ```
 
 Each commit shows:
@@ -264,12 +515,45 @@ Example commit hash: `abc123def456789012345678901234567890abcd`
 
 ## Advanced Usage
 
-### Working with Different States
+### Showing Differences
 
-1. **Make changes to files**
-2. **Stage changes:** `ugit add file.txt`
-3. **Review staged changes:** `ugit status`
-4. **Commit changes:** `ugit commit -m "Description"`
+Compare changes between different states:
+
+```bash
+# Show changes in working directory
+ugit diff
+
+# Show staged changes
+ugit diff --staged
+
+# Compare two commits
+ugit diff abc123 def456
+
+# Compare with previous commit
+ugit diff HEAD~1
+```
+
+### Reset Operations
+
+Undo changes or move to different states:
+
+```bash
+# Unstage all files (soft reset)
+ugit reset
+
+# Reset to specific commit (soft - keeps changes)
+ugit reset abc123
+
+# Reset to specific commit (hard - discards changes)
+ugit reset --hard abc123
+
+# Reset to previous commit
+ugit reset --hard HEAD~1
+```
+
+**Reset Types:**
+- **Soft reset** (`ugit reset`): Moves HEAD, keeps changes in working directory
+- **Hard reset** (`ugit reset --hard`): Moves HEAD and discards all changes
 
 ### Repository Navigation
 
@@ -278,13 +562,13 @@ Example commit hash: `abc123def456789012345678901234567890abcd`
 ugit status
 
 # View recent commits
-ugit log --max-count 5
+ugit log -n 5
 
 # Go back to a previous commit
 ugit checkout <commit-hash>
 
-# Return to latest commit
-ugit checkout <latest-commit-hash>
+# Return to latest commit on current branch
+ugit checkout main
 ```
 
 ### File Management
@@ -292,6 +576,9 @@ ugit checkout <latest-commit-hash>
 ```bash
 # Add all modified files
 ugit add .
+
+# Add specific file types
+ugit add "*.py"
 
 # Check what will be committed
 ugit status

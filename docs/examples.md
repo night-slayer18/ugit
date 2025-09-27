@@ -5,6 +5,9 @@ This document provides practical examples of using ugit for various version cont
 ## Table of Contents
 
 - [Basic Workflows](#basic-workflows)
+- [Branching Workflows](#branching-workflows)
+- [Stash Management](#stash-management)
+- [Remote Repository Workflows](#remote-repository-workflows)
 - [File Management](#file-management)
 - [Commit Strategies](#commit-strategies)
 - [History Exploration](#history-exploration)
@@ -57,7 +60,201 @@ ugit add main.py
 ugit commit -m "Add main execution block"
 
 # Review recent work
-ugit log --max-count 3
+ugit log -n 3
+```
+
+## Branching Workflows
+
+### Feature Branch Development
+
+```bash
+# Start from main branch
+ugit checkout main
+ugit log --oneline -n 3
+
+# Create and switch to feature branch
+ugit checkout -b feature-user-auth
+
+# Develop the feature
+echo "class UserAuth:" > auth.py
+echo "    def login(self, username, password):" >> auth.py
+echo "        pass" >> auth.py
+
+ugit add auth.py
+ugit commit -m "Add UserAuth class skeleton"
+
+# Continue feature development
+echo "    def logout(self):" >> auth.py
+echo "        pass" >> auth.py
+
+ugit add auth.py
+ugit commit -m "Add logout method to UserAuth"
+
+# Switch back to main and merge
+ugit checkout main
+ugit merge feature-user-auth
+
+# Clean up branch
+ugit branch -d feature-user-auth
+
+# Verify merge
+ugit log --oneline -n 5
+```
+
+### Parallel Feature Development
+
+```bash
+# Create two feature branches
+ugit checkout -b feature-database
+echo "database setup" > db.py
+ugit add db.py
+ugit commit -m "Add database configuration"
+
+ugit checkout main
+ugit checkout -b feature-api
+echo "API endpoints" > api.py
+ugit add api.py
+ugit commit -m "Add API endpoints"
+
+# Merge both features
+ugit checkout main
+ugit merge feature-database
+ugit merge feature-api
+
+# Check final result
+ugit log --oneline --graph -n 10
+```
+
+## Stash Management
+
+### Quick Context Switch
+
+```bash
+# Working on feature A
+echo "Feature A code" > feature_a.py
+ugit add feature_a.py
+
+# Urgent bug fix needed - stash current work
+ugit stash save "Feature A implementation in progress"
+
+# Check stash was saved
+ugit stash list
+ugit status  # Should be clean
+
+# Work on urgent fix
+echo "Critical bug fix" > hotfix.py
+ugit add hotfix.py
+ugit commit -m "Fix critical security vulnerability"
+
+# Return to Feature A work
+ugit stash pop
+ugit status  # Should show feature_a.py changes
+
+# Continue working
+echo "More Feature A code" >> feature_a.py
+ugit commit -m "Complete Feature A implementation"
+```
+
+### Multiple Stashes Workflow
+
+```bash
+# Start multiple pieces of work
+echo "Experimental feature 1" > experiment1.py
+ugit add experiment1.py
+ugit stash save "Experiment 1 - new algorithm"
+
+echo "Experimental feature 2" > experiment2.py
+ugit add experiment2.py
+ugit stash save "Experiment 2 - UI improvements"
+
+# List all stashes
+ugit stash list
+
+# Apply specific stash without removing it
+ugit stash apply 1  # Apply "Experiment 1"
+
+# Work with it, then clean up
+ugit reset --hard  # Discard changes
+ugit stash drop 1  # Remove stash 1
+
+# Apply and remove the other stash
+ugit stash pop  # Apply and remove most recent (Experiment 2)
+```
+
+## Remote Repository Workflows
+
+### Team Collaboration Setup
+
+```bash
+# Initial repository setup
+ugit init
+echo "# Team Project" > README.md
+ugit add README.md
+ugit commit -m "Initial project setup"
+
+# Add remote repository
+ugit remote add origin https://github.com/team/project.git
+
+# Push initial code
+ugit push origin main
+
+# List remotes to verify
+ugit remote -v
+```
+
+### Feature Development with Remote
+
+```bash
+# Clone existing repository
+ugit clone https://github.com/team/project.git
+cd project
+
+# Check remote status
+ugit remote show origin
+
+# Create feature branch
+ugit checkout -b feature-new-dashboard
+
+# Develop feature
+echo "dashboard code" > dashboard.py
+ugit add dashboard.py
+ugit commit -m "Add new dashboard component"
+
+# Push feature branch to remote
+ugit push origin feature-new-dashboard
+
+# Later: sync with main branch
+ugit checkout main
+ugit pull origin main
+
+# Merge feature locally
+ugit merge feature-new-dashboard
+ugit push origin main
+```
+
+### Collaborative Workflow
+
+```bash
+# Start of day: sync with team changes
+ugit checkout main
+ugit pull origin main
+
+# Create personal feature branch
+ugit checkout -b my-feature-branch
+
+# Work and commit regularly
+echo "my changes" > my_file.py
+ugit add my_file.py
+ugit commit -m "Add my feature implementation"
+
+# Before pushing: sync with latest main
+ugit checkout main
+ugit pull origin main
+ugit checkout my-feature-branch
+ugit merge main  # or rebase if preferred
+
+# Push feature branch
+ugit push origin my-feature-branch
 ```
 
 ## File Management

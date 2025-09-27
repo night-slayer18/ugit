@@ -18,7 +18,7 @@ A minimal Git implementation in Python that demonstrates the core concepts of ve
 - **Branching** - Create, switch, and manage branches
 - **Merging** - Merge branches with conflict resolution
 - **Remotes** - Work with remote repositories (clone, fetch, pull, push)
-- **Stashing** - Temporarily save changes for later
+- **Stashing** - Temporarily save changes for later (save, list, pop, apply, drop)
 - **Diffing** - Compare changes between commits, files, or working directory
 
 ### 🌐 Web Interface
@@ -85,15 +85,74 @@ ugit add .
 
 # Create a commit
 ugit commit -m "Initial commit"
+ugit commit -m "Commit message" --author "Name <email@example.com>"
 
 # Check repository status
 ugit status
 
 # View commit history
-ugit log
+ugit log                    # Full history
+ugit log --oneline         # Compact view
+ugit log --graph           # ASCII graph
+ugit log -n 5              # Limit to 5 commits
+ugit log --since "2025-01-01"  # Since date
 
-# Checkout a specific commit
-ugit checkout <commit-sha>
+# Checkout commits and branches
+ugit checkout <commit-sha>  # Checkout specific commit
+ugit checkout <branch>      # Switch to branch
+ugit checkout -b <branch>   # Create and switch to branch
+
+# Branch management
+ugit branch                 # List branches
+ugit branch <name>          # Create branch
+ugit branch -d <name>       # Delete branch
+
+# Merge branches
+ugit merge <branch>         # Merge branch
+ugit merge <branch> --no-ff # Force merge commit
+
+# Show differences
+ugit diff                   # Working directory changes
+ugit diff --staged          # Staged changes
+ugit diff <commit1> <commit2>  # Between commits
+
+# Reset operations
+ugit reset                  # Unstage all files
+ugit reset <commit>         # Reset to commit (soft)
+ugit reset --hard <commit>  # Reset to commit (hard)
+ugit reset --soft <commit>  # Reset to commit (keep staged)
+
+# Stash operations
+ugit stash                  # Stash current changes
+ugit stash save "message"   # Stash with message
+ugit stash list             # List all stashes
+ugit stash pop              # Apply and remove latest stash
+ugit stash pop 1            # Apply specific stash by index
+ugit stash apply            # Apply stash without removing
+ugit stash drop             # Remove stash without applying
+ugit stash -u               # Include untracked files
+
+# Remote repository operations
+ugit clone <url> [directory]     # Clone repository
+ugit remote                      # List remotes
+ugit remote -v                   # List remotes with URLs
+ugit remote add origin <url>     # Add remote
+ugit remote remove <name>        # Remove remote
+ugit remote show <name>          # Show remote details
+
+# Fetch, pull, and push
+ugit fetch                       # Fetch from origin
+ugit fetch <remote>              # Fetch from specific remote
+ugit pull                        # Pull from origin/current branch
+ugit pull <remote> <branch>      # Pull specific branch
+ugit push                        # Push to origin/current branch
+ugit push <remote> <branch>      # Push specific branch
+ugit push -f                     # Force push
+
+# Configuration
+ugit config user.name "Your Name"
+ugit config user.email "you@example.com"
+ugit config --list           # List all configuration
 ```
 
 #### 🌐 Web Interface
@@ -188,19 +247,23 @@ ugit implements the core Git concepts:
 | `add` | Stage files | `ugit add file.txt` |
 | `commit` | Create commit | `ugit commit -m "message"` |
 | `status` | Show status | `ugit status` |
-| `log` | Show history | `ugit log --oneline` |
-| `checkout` | Restore files/switch branches | `ugit checkout abc123` |
-| `branch` | Manage branches | `ugit branch feature-x` |
-| `merge` | Merge branches | `ugit merge feature-x` |
+| `config` | Configuration | `ugit config user.name "John"` |
+| `log` | Show history | `ugit log --oneline --graph` |
+| `checkout` | Restore files/switch branches | `ugit checkout -b feature` |
+| `branch` | Manage branches | `ugit branch -d old-feature` |
+| `merge` | Merge branches | `ugit merge feature --no-ff` |
 | `diff` | Show changes | `ugit diff --staged` |
 | `reset` | Reset changes | `ugit reset --hard HEAD~1` |
-| `stash` | Temporarily save changes | `ugit stash` |
+| **`stash`** | **Temporarily save changes** | **`ugit stash save "WIP"`** |
+| **`stash list`** | **List all stashes** | **`ugit stash list`** |
+| **`stash pop`** | **Apply and remove stash** | **`ugit stash pop 1`** |
+| **`stash apply`** | **Apply stash (keep it)** | **`ugit stash apply`** |
+| **`stash drop`** | **Remove stash** | **`ugit stash drop 0`** |
 | `clone` | Clone repository | `ugit clone <url>` |
 | `remote` | Manage remotes | `ugit remote add origin <url>` |
 | `fetch` | Fetch from remote | `ugit fetch origin` |
 | `pull` | Pull changes | `ugit pull origin main` |
-| `push` | Push changes | `ugit push origin main` |
-| `config` | Configuration | `ugit config user.name "John"` |
+| `push` | Push changes | `ugit push -f origin main` |
 | **`serve`** | **Start web interface** | **`ugit serve --port 8080`** |
 
 ## 🧪 Development

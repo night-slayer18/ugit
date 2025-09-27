@@ -16,16 +16,18 @@ This document provides a high-level overview of ugit's architecture and design d
 
 ### Goals
 
-- **Simplicity**: Keep the codebase minimal and understandable
+- **Comprehensiveness**: Implement most core Git functionality with high fidelity
 - **Educational**: Code should be readable and well-documented
-- **Functional**: Core Git features should work correctly
+- **Functional**: Git features should work correctly for real projects
 - **Extensible**: Easy to add new features without breaking existing functionality
+- **User-friendly**: Intuitive CLI and beautiful web interface
 
 ### Non-Goals
 
-- **Complete Git compatibility**: ugit implements core features, not every Git command
-- **Performance optimization**: Focus on correctness over speed
-- **Complex workflows**: Advanced Git features (merge, rebase, etc.) are out of scope
+- **100% Git compatibility**: ugit uses its own storage format (.ugit vs .git)
+- **Advanced Git internals**: Complex features like git-filter-branch, submodules
+- **Performance optimization**: Focus on correctness and clarity over speed
+- **Enterprise features**: Complex authentication, hooks, large file support
 
 ### Design Principles
 
@@ -37,6 +39,15 @@ This document provides a high-level overview of ugit's architecture and design d
 ## System Architecture
 
 ```
+┌─────────────────────────────────────────────────────────────┐
+│                       Web Interface Layer                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
+│  │  server.py  │  │ templates/  │  │   static/   │          │
+│  │  (FastAPI)  │  │   (HTML)    │  │ (CSS, JS)   │          │
+│  └─────────────┘  └─────────────┘  └─────────────┘          │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        CLI Layer                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
@@ -72,7 +83,23 @@ This document provides a high-level overview of ugit's architecture and design d
 
 ## Core Components
 
-### 1. CLI Layer (`ugit/cli.py`)
+### 1. Web Interface Layer (`ugit/web/`)
+
+**Responsibility**: HTTP-based repository browsing interface
+
+**Components**:
+- `server.py`: FastAPI-based web server with REST API endpoints
+- `templates/index.html`: Jinja2 template for repository browser
+- `static/css/style.css`: Dark theme styling and responsive design
+- `static/js/app.js`: Frontend JavaScript for dynamic interactions
+
+**Key Features**:
+- Repository file browser with syntax highlighting
+- Interactive commit history timeline
+- Real-time repository exploration
+- Responsive design for desktop and mobile
+
+### 2. CLI Layer (`ugit/cli.py`)
 
 **Responsibility**: Command-line interface and argument parsing
 
@@ -82,17 +109,29 @@ This document provides a high-level overview of ugit's architecture and design d
 - Handle global options and help
 - Error handling and user feedback
 
-### 2. Command Layer (`ugit/commands/`)
+### 3. Command Layer (`ugit/commands/`)
 
 **Responsibility**: Implementation of individual ugit commands
 
 **Modules**:
 - `init.py`: Repository initialization
-- `add.py`: File staging
-- `commit.py`: Commit creation
-- `status.py`: Working directory status
-- `log.py`: Commit history
-- `checkout.py`: Working directory restoration
+- `add.py`: File staging and index management
+- `commit.py`: Commit creation and metadata
+- `status.py`: Working directory and staging area status
+- `log.py`: Commit history and filtering
+- `checkout.py`: Working directory restoration and branch switching
+- `branch.py`: Branch creation, listing, and deletion
+- `merge.py`: Branch merging and conflict resolution
+- `diff.py`: File and commit comparison
+- `reset.py`: HEAD and working directory reset operations
+- `stash.py`: Temporary change storage and retrieval
+- `clone.py`: Repository cloning from remotes
+- `remote.py`: Remote repository management
+- `fetch.py`: Fetching changes from remotes
+- `pull.py`: Fetching and merging from remotes
+- `push.py`: Pushing changes to remotes
+- `config.py`: Configuration management
+- `serve.py`: Web interface server
 
 **Common Pattern**:
 ```python
@@ -102,7 +141,7 @@ def command_name(args):
     # Update repository state
 ```
 
-### 3. Core Layer (`ugit/core/`)
+### 4. Core Layer (`ugit/core/`)
 
 #### Repository Management (`repository.py`)
 

@@ -6,28 +6,42 @@ This document answers common questions about ugit usage, features, and troublesh
 
 ### What is ugit?
 
-ugit is a minimal Git implementation written in Python. It provides core version control functionality including repository initialization, file staging, commits, history viewing, and basic checkout operations.
+ugit is a comprehensive Git implementation written in Python. It provides full version control functionality including repository initialization, file staging, commits, branching, merging, stashing, remote repositories, and a beautiful web interface.
 
 ### How is ugit different from Git?
 
-ugit implements only the core features of Git:
-- **Similarities**: Repository initialization, file staging, commits, history, basic checkout
-- **Differences**: No branches, merging, remotes, advanced features, or complete Git compatibility
-- **Purpose**: Educational tool and minimal version control for simple projects
+ugit implements most core features of Git with some differences:
+
+**Implemented Features:**
+- Repository initialization and management
+- File staging and commits with full metadata
+- Complete branching and merging system
+- Stash management (save, pop, apply, list, drop)
+- Remote repositories (clone, fetch, pull, push)
+- Comprehensive diff and history viewing
+- Configuration system
+- Beautiful web interface for repository browsing
+
+**Key Differences:**
+- Uses `.ugit` directory instead of `.git`
+- Simplified object storage format
+- No sub-modules or advanced Git features
+- Educational focus with clear, readable code
 
 ### Is ugit compatible with Git?
 
-No, ugit uses its own storage format (`.ugit` directory) and is not compatible with Git repositories. ugit is designed as a standalone, simplified version control system.
+No, ugit uses its own storage format (`.ugit` directory) and is not compatible with Git repositories. However, ugit provides similar functionality and workflow patterns, making it easy to transition between the two systems.
 
 ### Can I use ugit for real projects?
 
 ugit is suitable for:
-- ✅ Small personal projects
+- ✅ Small to medium projects
 - ✅ Learning version control concepts
-- ✅ Simple file tracking
-- ❌ Large codebases
-- ❌ Team collaboration
-- ❌ Production environments
+- ✅ Team collaboration with remote repositories
+- ✅ Personal and educational projects
+- ✅ Projects requiring web-based repository browsing
+- ⚠️ Large codebases (limited performance optimization)
+- ❌ Integration with Git-specific tools and services
 
 ## Installation and Setup
 
@@ -106,6 +120,139 @@ ugit doesn't have built-in commit undoing. You can:
 1. Checkout a previous commit: `ugit checkout <commit-sha>`
 2. Make new changes and commit them
 3. This effectively creates a new state without deleting history
+
+## Branching and Merging
+
+### How do I create and use branches?
+
+```bash
+# Create a new branch
+ugit branch feature-login
+
+# Switch to the branch
+ugit checkout feature-login
+
+# Or create and switch in one command
+ugit checkout -b feature-payment
+
+# List all branches
+ugit branch
+
+# Delete a branch
+ugit branch -d old-feature
+```
+
+### How do I merge branches?
+
+```bash
+# Switch to target branch (usually main)
+ugit checkout main
+
+# Merge feature branch
+ugit merge feature-login
+
+# Force merge commit (no fast-forward)
+ugit merge feature-payment --no-ff
+```
+
+### What's the difference between fast-forward and no-ff merge?
+
+- **Fast-forward**: Moves branch pointer forward (linear history)
+- **No fast-forward (`--no-ff`)**: Creates explicit merge commit (branched history)
+
+## Stashing
+
+### What is stashing and when do I use it?
+
+Stashing temporarily saves your changes without committing them. Use it when:
+- Switching branches with uncommitted changes
+- Pulling updates but having local modifications
+- Quickly experimenting then returning to original work
+
+### How do I use stash?
+
+```bash
+# Save current changes to stash
+ugit stash
+ugit stash save "Work in progress on login feature"
+
+# List all stashes
+ugit stash list
+
+# Apply most recent stash
+ugit stash pop
+
+# Apply specific stash by index
+ugit stash pop 1
+
+# Apply stash without removing it
+ugit stash apply
+
+# Remove stash without applying
+ugit stash drop
+```
+
+## Remote Repositories
+
+### How do I work with remote repositories?
+
+```bash
+# Clone a repository
+ugit clone https://github.com/user/repo.git
+
+# Add a remote to existing repository
+ugit remote add origin https://github.com/user/repo.git
+
+# List remotes
+ugit remote -v
+
+# Fetch changes from remote
+ugit fetch origin
+
+# Pull and merge changes
+ugit pull origin main
+
+# Push changes to remote
+ugit push origin main
+```
+
+### What's the difference between fetch and pull?
+
+- **`ugit fetch`**: Downloads changes but doesn't merge them
+- **`ugit pull`**: Downloads changes AND merges them into current branch
+
+### Can I use ugit with GitHub/GitLab?
+
+Yes! ugit supports standard Git protocols for remote operations:
+- Clone repositories from GitHub, GitLab, etc.
+- Push and pull changes
+- Work with team members using the same remote repository
+
+## Web Interface
+
+### How do I use the web interface?
+
+```bash
+# Install with web support
+pip install ugit[web]
+
+# Start web interface
+ugit serve
+
+# Custom host and port
+ugit serve --host 0.0.0.0 --port 8080
+
+# Don't open browser automatically
+ugit serve --no-browser
+```
+
+### What features does the web interface provide?
+
+- Beautiful repository file browser
+- Syntax-highlighted code viewing
+- Interactive commit history timeline
+- Responsive design for desktop and mobile
+- Real-time repository exploration
 
 ## Advanced Usage
 
