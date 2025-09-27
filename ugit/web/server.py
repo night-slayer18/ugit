@@ -191,7 +191,8 @@ class UgitWebServer:
                                     blob_type, blob_data = get_object(file_sha)
                                     if blob_type == "blob":
                                         file_info["size"] = len(blob_data)
-                                except:
+                                except (FileNotFoundError, ValueError):
+                                    # Skip files that can't be read
                                     pass
 
                             # Get last commit info for this specific file

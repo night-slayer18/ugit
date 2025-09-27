@@ -4,7 +4,7 @@ Web server command for ugit.
 
 import os
 import signal
-import subprocess
+import subprocess  # nosec - subprocess is needed for starting web server
 import sys
 import webbrowser
 from pathlib import Path

@@ -217,7 +217,8 @@ def _is_fast_forward(repo: Repository, base_sha: str, target_sha: str) -> bool:
                     # Direct parent SHA
                     to_check.append(parent)
 
-        except Exception:
+        except (FileNotFoundError, UnicodeDecodeError, IOError):
+            # Skip commits that can't be read or decoded
             continue
 
     return False
@@ -302,8 +303,9 @@ def _collect_objects(
                 if len(entry) >= 2:
                     _collect_objects(entry[1], to_push, visited, remote_url)
 
-    except Exception:
-        pass
+    except (FileNotFoundError, ValueError, IndexError):
+        # Skip objects that can't be read or parsed
+        return
 
 
 def _remote_has_object(remote_url: str, sha: str) -> bool:
