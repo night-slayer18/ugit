@@ -158,24 +158,24 @@ async function viewFile(fileName) {
 
 function showFileViewer(fileName, content, size, fileType) {
     // Hide file browser and show file viewer
-    document.querySelector('.github-file-browser').style.display = 'none';
-    const fileViewer = document.getElementById('github-file-viewer');
+    document.querySelector('.file-browser').style.display = 'none';
+    const fileViewer = document.getElementById('file-viewer');
     fileViewer.style.display = 'block';
     
     // Update file path
-    document.getElementById('github-file-path').textContent = fileName;
+    document.getElementById('file-path').textContent = fileName;
     
     // Update file stats
     const sizeKB = (size / 1024).toFixed(1);
     const lines = content ? content.split('\n').length : 0;
-    document.getElementById('github-file-stats').innerHTML = `
+    document.getElementById('file-stats').innerHTML = `
         <span>${sizeKB} KB</span>
         <span>•</span>
         <span>${lines} lines</span>
     `;
     
     // Display content
-    const contentDiv = document.getElementById('github-file-content');
+    const contentDiv = document.getElementById('file-content');
     
     if (fileType === 'binary' || isBinaryFile(fileName)) {
         contentDiv.innerHTML = `<div style="padding: 24px; text-align: center; color: #7d8590;">
@@ -186,20 +186,20 @@ function showFileViewer(fileName, content, size, fileType) {
     } else if (isImageFile(fileName)) {
         contentDiv.innerHTML = `<img src="data:image/${getImageType(fileName)};base64,${btoa(content)}" style="max-width: 100%; height: auto; margin: 24px;">`;
     } else if (content) {
-        // Text file - create GitHub-style code viewer with line numbers
+        // Text file - create repository-style code viewer with line numbers
         const lines = content.split('\n');
         const lineNumbers = lines.map((_, index) => index + 1).join('\n');
         
         contentDiv.innerHTML = `
-            <div class="github-line-numbers-wrapper">
-                <div class="github-line-numbers">${lineNumbers}</div>
-                <div class="github-code-content">${escapeHtml(content)}</div>
+            <div class="line-numbers-wrapper">
+                <div class="line-numbers">${lineNumbers}</div>
+                <div class="code-content">${escapeHtml(content)}</div>
             </div>
         `;
         
         // Apply syntax highlighting if Prism is available
         if (window.Prism) {
-            const codeElement = contentDiv.querySelector('.github-code-content');
+            const codeElement = contentDiv.querySelector('.code-content');
             const language = getLanguageFromFileName(fileName);
             if (language && Prism.languages[language]) {
                 codeElement.innerHTML = Prism.highlight(content, Prism.languages[language], language);
@@ -215,8 +215,8 @@ function showFileViewer(fileName, content, size, fileType) {
 
 function showFileList() {
     // Show file browser and hide file viewer
-    document.querySelector('.github-file-browser').style.display = 'block';
-    document.getElementById('github-file-viewer').style.display = 'none';
+    document.querySelector('.file-browser').style.display = 'block';
+    document.getElementById('file-viewer').style.display = 'none';
 }
 
 function goBack() {
@@ -484,7 +484,6 @@ function formatCommitDate(timestamp) {
         const diffHours = Math.floor(diffMinutes / 60);
         const diffDays = Math.floor(diffHours / 24);
         
-        // For today's commits, show time in minutes/hours like GitHub
         if (diffDays === 0) {
             if (diffMinutes < 1) {
                 return 'now';

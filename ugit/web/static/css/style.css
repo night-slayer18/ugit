@@ -1,4 +1,4 @@
-/* GitHub Dark Mode - Permanent */
+/* Repository Interface Dark Mode - Permanent */
 * {
     margin: 0;
     padding: 0;
@@ -20,7 +20,7 @@ body {
     background-color: #0d1117;
 }
 
-/* GitHub-style Header - Enhanced */
+/* Repository Interface Header - Enhanced */
 .header {
     background: linear-gradient(135deg, #21262d 0%, #1c2128 100%);
     color: #f0f6fc;
@@ -224,7 +224,6 @@ body {
     color: #f0f6fc;
 }
 
-/* Files Layout - GitHub Repository Style */
 .files-layout {
     display: flex;
     flex-direction: column;
@@ -261,8 +260,8 @@ body {
     font-weight: 500;
 }
 
-/* GitHub-style file browser */
-.github-file-browser {
+/* Repository file browser */
+.file-browser {
     margin: 24px;
     border: 1px solid #30363d;
     border-radius: 6px;
@@ -271,7 +270,7 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* Latest Commit Bar (GitHub style) */
+/* Latest Commit Bar */
 .latest-commit-bar {
     padding: 16px 24px;
     background: #21262d;
@@ -338,7 +337,7 @@ body {
     color: #58a6ff;
 }
 
-/* GitHub-style file table */
+/* Repository file table */
 .file-table-container {
     overflow-x: auto;
 }
@@ -469,8 +468,8 @@ body {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-/* GitHub-style file viewer */
-.github-file-viewer {
+/* Repository file viewer */
+.file-viewer {
     margin: 24px;
     border: 1px solid #30363d;
     border-radius: 6px;
@@ -529,7 +528,7 @@ body {
     color: #7d8590;
 }
 
-#github-file-path {
+#file-path {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     font-weight: 600;
     font-size: 16px;
@@ -540,12 +539,12 @@ body {
     color: #7d8590;
 }
 
-.github-file-content {
+.file-content {
     background: #0d1117;
 }
 
-/* GitHub code viewer styles */
-.github-code-viewer {
+/* Repository code viewer styles */
+.code-viewer {
     background: #0d1117;
     color: #f0f6fc;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -556,7 +555,7 @@ body {
     overflow: auto;
 }
 
-.github-code-viewer pre {
+.code-viewer pre {
     margin: 0;
     padding: 16px 24px;
     background: transparent;
@@ -567,7 +566,7 @@ body {
     line-height: inherit;
 }
 
-.github-code-viewer code {
+.code-viewer code {
     background: transparent;
     padding: 0;
     border: none;
@@ -576,8 +575,8 @@ body {
     color: inherit;
 }
 
-/* Line numbers for GitHub code viewer */
-.github-line-numbers-wrapper {
+/* Line numbers for code viewer */
+.line-numbers-wrapper {
     display: flex;
     background: #0d1117;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -585,7 +584,7 @@ body {
     line-height: 1.45;
 }
 
-.github-line-numbers {
+.line-numbers {
     background: #0d1117;
     color: #656d76;
     padding: 16px 16px 16px 24px;
@@ -596,12 +595,12 @@ body {
     white-space: pre;
 }
 
-.github-line-numbers .line-number {
+.line-numbers .line-number {
     display: block;
     padding: 0;
 }
 
-.github-code-content {
+.code-content {
     flex: 1;
     padding: 16px 24px;
     overflow: auto;
@@ -890,7 +889,7 @@ body {
     opacity: 0.6;
 }
 
-/* Code Viewer - GitHub Dark Mode with Better Contrast */
+/* Code Viewer - Repository Dark Mode with Better Contrast */
 .code-viewer {
     display: flex;
     font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace;
@@ -1077,7 +1076,6 @@ button:hover, input:hover, select:hover, textarea:hover {
     opacity: 0.6;
 }
 
-/* Commits - GitHub Dark Mode */
 .commits-container {
     padding: 24px;
     min-height: 70vh;

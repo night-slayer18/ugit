@@ -52,7 +52,7 @@ class UgitWebServer:
         
         @self.app.get("/api/files")
         async def list_files(path: str = "", commit: str = "HEAD"):
-            """List files and directories from the committed tree (like GitHub)"""
+            """List files and directories from the committed tree (repository view)"""
             try:
                 print(f"DEBUG: Requesting files for path='{path}', commit='{commit}'")
                 

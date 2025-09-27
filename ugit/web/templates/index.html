@@ -6,14 +6,14 @@
     <title>{{ repo_name }} - ugit Repository</title>
     <link href="/static/css/style.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
-    <!-- GitHub Octicons -->
+    <!-- Icon libraries -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/12.1.0/octicons.min.css">
     <!-- Font Awesome for additional icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <!-- GitHub-style Header -->
+        <!-- Repository Interface Header -->
         <header class="header">
             <div class="header-content">
                 <h1 class="repo-title">
@@ -52,9 +52,9 @@
                     </div>
                 </div>
 
-                <!-- GitHub-style File Browser -->
-                <div class="github-file-browser">
-                    <!-- Latest Commit Bar (GitHub style) -->
+                <!-- Repository File Browser -->
+                <div class="file-browser">
+                    <!-- Latest Commit Bar -->
                     <div class="latest-commit-bar">
                         <div class="commit-info-left">
                             <i class="fa-solid fa-code-commit"></i>
@@ -73,7 +73,7 @@
                         </div>
                     </div>
                     
-                    <!-- File List Table (GitHub style) -->
+                    <!-- File List Table -->
                     <div class="file-table-container" id="file-table-container">
                         <table class="file-table">
                             <tbody id="file-table-body" class="file-table-body">
@@ -83,8 +83,8 @@
                     </div>
                 </div>
 
-                <!-- GitHub-style File Viewer (Full Width) -->
-                <div id="github-file-viewer" class="github-file-viewer" style="display: none;">
+                <!-- Repository File Viewer (Full Width) -->
+                <div id="file-viewer" class="file-viewer" style="display: none;">
                     <div class="file-viewer-header">
                         <div class="file-header-left">
                             <button id="back-to-files" class="back-to-files-btn">
@@ -92,16 +92,16 @@
                             </button>
                             <div class="file-path-info">
                                 <i class="fa-solid fa-file-code"></i>
-                                <span id="github-file-path">filename.ext</span>
+                                <span id="file-path">filename.ext</span>
                             </div>
                         </div>
                         <div class="file-actions">
-                            <div class="file-stats" id="github-file-stats">
+                            <div class="file-stats" id="file-stats">
                                 <!-- File stats -->
                             </div>
                         </div>
                     </div>
-                    <div id="github-file-content" class="github-file-content">
+                    <div id="file-content" class="file-content">
                         <!-- File content will be populated -->
                     </div>
                 </div>
