@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request  # type: ignore[import-not-found]
-from fastapi.responses import HTMLResponse, JSONResponse  # type: ignore[import-not-found]
+from fastapi.responses import (  # type: ignore[import-not-found]
+    HTMLResponse,
+    JSONResponse,
+)
 from fastapi.staticfiles import StaticFiles  # type: ignore[import-not-found]
 from fastapi.templating import Jinja2Templates  # type: ignore[import-not-found]
 from starlette.responses import FileResponse, Response  # type: ignore[import-not-found]
