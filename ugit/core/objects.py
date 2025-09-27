@@ -104,7 +104,7 @@ def get_object(sha: str) -> Tuple[str, bytes]:
 
         null_pos = data.index(b"\x00")
         header = data[:null_pos].decode()
-        content = data[null_pos + 1:]
+        content = data[null_pos + 1 :]
 
         type_, size = header.split()
         if int(size) != len(content):

@@ -1,8 +1,8 @@
 """Tests for config command."""
 
 import os
-import tempfile
 import shutil
+import tempfile
 
 import pytest
 

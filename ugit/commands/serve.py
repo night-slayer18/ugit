@@ -1,11 +1,12 @@
 """
 Web server command for ugit.
 """
+
 import os
+import signal
+import subprocess
 import sys
 import webbrowser
-import subprocess
-import signal
 from pathlib import Path
 
 from ugit.utils.helpers import ensure_repository
@@ -14,7 +15,7 @@ from ugit.utils.helpers import ensure_repository
 def serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True):
     """
     Start the ugit web interface server.
-    
+
     Args:
         port: Port to run the server on (default: 8000)
         host: Host to bind to (default: 127.0.0.1)
@@ -24,19 +25,20 @@ def serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True):
         # Check if we're in a ugit repository
         repo = ensure_repository()
         repo_root = repo.path
-        
+
         print(f"Starting ugit web interface...")
         print(f"Repository: {repo_root}")
         print(f"Server: http://{host}:{port}")
         print("Press Ctrl+C to stop the server")
-        
+
         # Change to repository directory
         os.chdir(repo_root)
-        
+
         # Import and start the web server
         try:
-            from ugit.web.server import create_app
             import uvicorn
+
+            from ugit.web.server import create_app
         except ImportError as e:
             print(f"Error: Web dependencies not installed.")
             print(f"Install ugit with web support using:")
@@ -45,34 +47,30 @@ def serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True):
             print(f"Or install dependencies manually:")
             print(f"  pip install fastapi uvicorn jinja2 python-multipart aiofiles")
             return 1
-        
+
         # Create the FastAPI app
         app = create_app(repo_root)
-        
+
         # Open browser if requested
         if open_browser:
+
             def open_browser_delayed():
                 import threading
                 import time
+
                 def delayed_open():
                     time.sleep(1.5)  # Wait for server to start
                     webbrowser.open(f"http://{host}:{port}")
-                
+
                 thread = threading.Thread(target=delayed_open)
                 thread.daemon = True
                 thread.start()
-            
+
             open_browser_delayed()
-        
+
         # Start the server
-        uvicorn.run(
-            app,
-            host=host,
-            port=port,
-            log_level="info",
-            access_log=True
-        )
-        
+        uvicorn.run(app, host=host, port=port, log_level="info", access_log=True)
+
     except KeyboardInterrupt:
         print("\nServer stopped by user")
         return 0

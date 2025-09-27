@@ -8,12 +8,26 @@ A minimal Git implementation in Python that demonstrates the core concepts of ve
 
 ## ✨ Features
 
+### Core Git Functionality
 - **Repository initialization** - Create new ugit repositories
 - **File staging** - Add files to the staging area  
 - **Committing** - Create commits from staged changes
-- **History viewing** - Browse commit history
+- **History viewing** - Browse commit history with detailed logs
 - **Checkout** - Restore files from specific commits
 - **Status checking** - See which files are modified, staged, or untracked
+- **Branching** - Create, switch, and manage branches
+- **Merging** - Merge branches with conflict resolution
+- **Remotes** - Work with remote repositories (clone, fetch, pull, push)
+- **Stashing** - Temporarily save changes for later
+- **Diffing** - Compare changes between commits, files, or working directory
+
+### 🌐 Web Interface
+- **Beautiful Dark Mode Interface** - Modern, professional repository browser
+- **File Explorer** - Navigate repository files and directories with ease
+- **Code Viewer** - Syntax-highlighted file viewing with line numbers
+- **Commit History** - Visual commit timeline with detailed information  
+- **Real-time Updates** - Dynamic loading of repository data
+- **Responsive Design** - Works perfectly on desktop and mobile devices
 
 ## � Documentation
 
@@ -28,22 +42,39 @@ A minimal Git implementation in Python that demonstrates the core concepts of ve
 
 ## �🚀 Quick Start
 
-### Installation
+### Installation Options
 
+#### Option 1: Basic Installation (CLI Only)
+```bash
+pip install ugit
+```
+This installs the core ugit functionality for command-line usage.
+
+#### Option 2: Full Installation (CLI + Web Interface)
+```bash
+pip install ugit[web]
+```
+This includes the beautiful web interface for browsing repositories.
+
+#### Option 3: Development Installation
 ```bash
 # Clone the repository
 git clone https://github.com/night-slayer18/ugit.git
 cd ugit
 
-# Install in development mode
+# Install in development mode (CLI only)
 pip install -e .
 
-# For web interface support, install with web dependencies
+# Or install with web interface support
+pip install -e .[web]
+```
+
 pip install -e .[web]
 ```
 
 ### Basic Usage
 
+#### Command Line Interface
 ```bash
 # Initialize a new repository
 ugit init
@@ -63,10 +94,25 @@ ugit log
 
 # Checkout a specific commit
 ugit checkout <commit-sha>
-
-# Start web interface (requires web dependencies)
-ugit serve
 ```
+
+#### 🌐 Web Interface
+```bash
+# Start the web interface (requires ugit[web] installation)
+ugit serve
+
+# Custom host and port
+ugit serve --host 0.0.0.0 --port 8080
+
+# Don't open browser automatically
+ugit serve --no-browser
+```
+
+The web interface provides:
+- **Beautiful file browser** with syntax highlighting
+- **Interactive commit history** with timeline view
+- **Responsive design** that works on all devices
+- **Real-time repository exploration** without command line
 
 ## 📁 Project Structure
 
@@ -84,13 +130,34 @@ ugit/
 │   │   ├── commit.py      # Commit creation
 │   │   ├── log.py         # History viewing
 │   │   ├── checkout.py    # File restoration
-│   │   └── status.py      # Status checking
+│   │   ├── status.py      # Status checking
+│   │   ├── serve.py       # Web interface server
+│   │   ├── branch.py      # Branch management
+│   │   ├── merge.py       # Branch merging
+│   │   ├── remote.py      # Remote repositories
+│   │   ├── clone.py       # Repository cloning
+│   │   ├── fetch.py       # Fetch from remotes
+│   │   ├── pull.py        # Pull changes
+│   │   ├── push.py        # Push changes
+│   │   ├── stash.py       # Stash management
+│   │   ├── reset.py       # Reset operations
+│   │   ├── diff.py        # Show differences
+│   │   └── config.py      # Configuration management
+│   ├── web/               # Web interface components
+│   │   ├── server.py      # FastAPI web server
+│   │   ├── templates/     # HTML templates
+│   │   │   └── index.html # Main interface template
+│   │   └── static/        # Static assets
+│   │       ├── css/       # Stylesheets
+│   │       │   └── style.css  # Main dark theme styles
+│   │       └── js/        # JavaScript files
+│   │           └── app.js     # Frontend application logic
 │   └── utils/             # Utility functions
 ├── tests/                 # Unit tests
 ├── docs/                  # Documentation
-├── main.py               # Entry point script
-├── setup.py              # Package setup
-├── requirements.txt      # Dependencies
+├── pyproject.toml        # Project configuration
+├── requirements.txt      # Basic dependencies
+├── web-requirements.txt  # Web interface dependencies
 └── README.md            # This file
 ```
 
@@ -121,9 +188,20 @@ ugit implements the core Git concepts:
 | `add` | Stage files | `ugit add file.txt` |
 | `commit` | Create commit | `ugit commit -m "message"` |
 | `status` | Show status | `ugit status` |
-| `log` | Show history | `ugit log` |
-| `checkout` | Restore files | `ugit checkout abc123` |
-| `serve` | Start web interface | `ugit serve` |
+| `log` | Show history | `ugit log --oneline` |
+| `checkout` | Restore files/switch branches | `ugit checkout abc123` |
+| `branch` | Manage branches | `ugit branch feature-x` |
+| `merge` | Merge branches | `ugit merge feature-x` |
+| `diff` | Show changes | `ugit diff --staged` |
+| `reset` | Reset changes | `ugit reset --hard HEAD~1` |
+| `stash` | Temporarily save changes | `ugit stash` |
+| `clone` | Clone repository | `ugit clone <url>` |
+| `remote` | Manage remotes | `ugit remote add origin <url>` |
+| `fetch` | Fetch from remote | `ugit fetch origin` |
+| `pull` | Pull changes | `ugit pull origin main` |
+| `push` | Push changes | `ugit push origin main` |
+| `config` | Configuration | `ugit config user.name "John"` |
+| **`serve`** | **Start web interface** | **`ugit serve --port 8080`** |
 
 ## 🧪 Development
 

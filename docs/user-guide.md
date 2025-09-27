@@ -5,6 +5,7 @@ This comprehensive guide will teach you how to use ugit for version control.
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Web Interface](#web-interface)
 - [Basic Commands](#basic-commands)
 - [Working with Files](#working-with-files)
 - [Commit History](#commit-history)
@@ -46,6 +47,75 @@ ugit is a minimal Git implementation in Python that provides core version contro
    ```
 
 Congratulations! You've created your first ugit repository.
+
+## Web Interface
+
+ugit includes a beautiful web interface that provides a modern, intuitive way to browse and explore your repositories. 
+
+### Prerequisites
+
+The web interface requires additional dependencies. Install ugit with web support:
+
+```bash
+# Install with web interface support
+pip install ugit[web]
+
+# Or if installed from source
+pip install -e .[web]
+```
+
+### Starting the Web Interface
+
+Navigate to any ugit repository and start the server:
+
+```bash
+# Start with default settings (opens browser automatically)
+ugit serve
+
+# Specify custom host and port
+ugit serve --host 0.0.0.0 --port 8080
+
+# Don't open browser automatically
+ugit serve --no-browser
+```
+
+The web interface will be available at `http://127.0.0.1:8000` by default.
+
+### Web Interface Features
+
+#### 🗂️ File Browser
+- **Directory Navigation**: Click through directories just like a file explorer
+- **File Preview**: Click any file to view its contents with syntax highlighting
+- **Responsive Design**: Works perfectly on desktop and mobile devices
+
+#### 📝 Code Viewer
+- **Syntax Highlighting**: Automatic syntax highlighting for popular programming languages
+- **Line Numbers**: Professional code display with line numbering
+- **File Information**: View file size, type, and last modification details
+
+#### 📊 Repository Overview
+- **Latest Commit Information**: See the most recent commit message, hash, and timestamp
+- **File Status**: Visual indicators for file types and changes
+- **Repository Statistics**: Overview of repository health and activity
+
+#### 🌐 Modern Interface
+- **Dark Mode**: Professional dark theme that's easy on the eyes
+- **Fast Loading**: Efficient API design for quick repository browsing
+- **Intuitive Navigation**: Back buttons and breadcrumbs for easy navigation
+
+### Web Interface Navigation
+
+1. **Repository View**: Start at the repository root with file listing
+2. **Directory Navigation**: Click folder names to navigate into subdirectories  
+3. **File Viewing**: Click file names to open detailed file viewer
+4. **Back Navigation**: Use back button or browser back to return to previous views
+5. **Tab Switching**: Switch between "Code" and "Commits" views using navigation tabs
+
+### Keyboard Shortcuts
+
+The web interface supports intuitive navigation:
+- **Browser Back/Forward**: Navigate through your browsing history
+- **Refresh (F5)**: Reload current view with latest repository data
 
 ## Basic Commands
 

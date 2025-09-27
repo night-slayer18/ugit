@@ -207,9 +207,7 @@ Examples:
 
     # remote command
     remote_parser = subparsers.add_parser("remote", help="Manage remote repositories")
-    remote_parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Show URLs"
-    )
+    remote_parser.add_argument("-v", "--verbose", action="store_true", help="Show URLs")
     remote_subparsers = remote_parser.add_subparsers(
         dest="subcommand", help="Remote commands"
     )
@@ -229,33 +227,23 @@ Examples:
 
     # remote list (default)
     remote_list = remote_subparsers.add_parser("list", help="List remotes")
-    remote_list.add_argument(
-        "-v", "--verbose", action="store_true", help="Show URLs"
-    )
+    remote_list.add_argument("-v", "--verbose", action="store_true", help="Show URLs")
 
     # fetch command
     fetch_parser = subparsers.add_parser("fetch", help="Fetch from remote repository")
-    fetch_parser.add_argument(
-        "remote", nargs="?", default="origin", help="Remote name"
-    )
+    fetch_parser.add_argument("remote", nargs="?", default="origin", help="Remote name")
     fetch_parser.add_argument("branch", nargs="?", help="Branch name")
 
     # pull command
     pull_parser = subparsers.add_parser("pull", help="Fetch and merge from remote")
-    pull_parser.add_argument(
-        "remote", nargs="?", default="origin", help="Remote name"
-    )
+    pull_parser.add_argument("remote", nargs="?", default="origin", help="Remote name")
     pull_parser.add_argument("branch", nargs="?", help="Branch name")
 
     # push command
     push_parser = subparsers.add_parser("push", help="Push to remote repository")
-    push_parser.add_argument(
-        "remote", nargs="?", default="origin", help="Remote name"
-    )
+    push_parser.add_argument("remote", nargs="?", default="origin", help="Remote name")
     push_parser.add_argument("branch", nargs="?", help="Branch name")
-    push_parser.add_argument(
-        "-f", "--force", action="store_true", help="Force push"
-    )
+    push_parser.add_argument("-f", "--force", action="store_true", help="Force push")
 
     # serve command
     serve_parser = subparsers.add_parser("serve", help="Start web interface server")
