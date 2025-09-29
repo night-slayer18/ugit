@@ -25,7 +25,7 @@ This guide helps you diagnose and fix common issues with ugit.
 **Solutions**:
 ```bash
 # Try python -m pip instead
-python -m pip install ugit
+python -m pip install ugit-cli
 
 # Install pip if missing (macOS)
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
@@ -67,12 +67,12 @@ python -m ugit.cli
 **Solutions**:
 ```bash
 # Install for current user only
-pip install --user ugit
+pip install --user ugit-cli
 
 # Use virtual environment (recommended)
 python -m venv ugit-env
 source ugit-env/bin/activate  # Windows: ugit-env\Scripts\activate
-pip install ugit
+pip install ugit-cli
 ```
 
 ### `Python version incompatibility`
@@ -254,6 +254,7 @@ with open('.ugit/objects/ab/cdef123...', 'rb') as f:
 
 **Solutions**:
 ```bash
+python -m pip install ugit-cli
 # Remove corrupted object (lose that commit/file)
 rm .ugit/objects/ab/cdef123...
 
@@ -742,7 +743,8 @@ for root, dirs, files in os.walk('.ugit/objects'):
 "
 ```
 
-### Preventing corruption
+# Replace with ugit-cli
+pip install ugit-cli
 
 **Best practices**:
 ```bash

@@ -234,7 +234,7 @@ Yes! ugit supports standard Git protocols for remote operations:
 
 ```bash
 # Install with web support
-pip install ugit[web]
+pip install ugit-cli[web]
 
 # Start web interface
 ugit serve

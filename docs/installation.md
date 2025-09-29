@@ -21,21 +21,21 @@ ugit offers flexible installation options depending on your needs:
 For users who only need command-line functionality:
 
 ```bash
-pip install ugit
+pip install ugit-cli
 ```
 
 ### Option 2: Full Installation (CLI + Web Interface)  
 For users who want the complete experience including the web interface:
 
 ```bash
-pip install ugit[web]
+pip install ugit-cli[web]
 ```
 
 ### Option 3: Development Installation
 For contributors and developers:
 
 ```bash
-pip install ugit[dev,web]
+pip install ugit-cli[dev,web]
 ```
 
 ## Detailed Installation Methods

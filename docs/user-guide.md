@@ -62,7 +62,7 @@ The web interface requires additional dependencies. Install ugit with web suppor
 
 ```bash
 # Install with web interface support
-pip install ugit[web]
+pip install ugit-cli[web]
 
 # Or if installed from source
 pip install -e .[web]

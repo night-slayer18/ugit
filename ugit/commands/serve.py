@@ -45,7 +45,7 @@ def serve(
         except ImportError as e:
             print(f"Error: Web dependencies not installed.")
             print(f"Install ugit with web support using:")
-            print(f"  pip install ugit[web]")
+            print(f"  pip install ugit-cli[web]")
             print(f"")
             print(f"Or install dependencies manually:")
             print(f"  pip install fastapi uvicorn jinja2 python-multipart aiofiles")

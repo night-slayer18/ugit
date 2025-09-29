@@ -46,13 +46,13 @@ A minimal Git implementation in Python that demonstrates the core concepts of ve
 
 #### Option 1: Basic Installation (CLI Only)
 ```bash
-pip install ugit
+pip install ugit-cli
 ```
 This installs the core ugit functionality for command-line usage.
 
 #### Option 2: Full Installation (CLI + Web Interface)
 ```bash
-pip install ugit[web]
+pip install ugit-cli[web]
 ```
 This includes the beautiful web interface for browsing repositories.
 

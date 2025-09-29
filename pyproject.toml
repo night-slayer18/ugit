@@ -3,7 +3,7 @@ requires = ["setuptools>=75.8.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ugit"
+name = "ugit-cli"
 version = "1.2.0"
 description = "A minimal Git implementation in Python"
 readme = "README.md"
@@ -65,9 +65,14 @@ where = ["."]
 include = ["ugit*"]
 exclude = ["tests*"]
 
-# Add this section to ensure LICENSE file is included
 [tool.setuptools.package-data]
-ugit = ["LICENSE"]
+ugit = [
+    "LICENSE",
+    "web/static/*",
+    "web/static/css/*",
+    "web/static/js/*",
+    "web/templates/*"
+]
 
 [tool.black]
 line-length = 88
