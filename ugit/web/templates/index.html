@@ -1,36 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ repo_name }} - ugit Repository</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ugit - Modern Git Repository Viewer</title>
+    <meta name="description" content="Beautiful, fast Git repository browser" />
+    
     <link href="/static/css/style.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
-    <!-- Icon libraries -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/12.1.0/octicons.min.css">
-    <!-- Font Awesome for additional icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
+  </head>
+  <body>
     <div id="notification" class="notification" style="display: none;"></div>
     <div class="container">
         <!-- Repository Interface Header -->
         <header class="header">
             <div class="header-content">
                 <h1 class="repo-title">
-                    <i class="fa-solid fa-folder-open"></i>
-                    {{ repo_name }}
+                    <i class="fa-solid fa-code-branch"></i>
+                    <span id="repo-name">{{ repo_name }}</span>
                 </h1>
-                <div class="repo-path">{{ repo_path }}</div>
+                <div class="repo-path">
+                    <i class="fa-solid fa-folder-tree"></i>
+                    {{ repo_path }}
+                </div>
             </div>
             <nav class="nav-tabs">
                 <button class="nav-tab active" data-tab="files">
                     <i class="fa-solid fa-code"></i>
-                    Code
+                    <span>Code</span>
                 </button>
                 <button class="nav-tab" data-tab="commits">
                     <i class="fa-solid fa-clock-rotate-left"></i>
-                    Commits
+                    <span>Commits</span>
                 </button>
             </nav>
         </header>
@@ -43,7 +45,7 @@
                 <div class="navigation-bar">
                     <button id="back-button" class="back-button" style="display: none;">
                         <i class="fa-solid fa-arrow-left"></i>
-                        Back
+                        <span>Back</span>
                     </button>
                     <div class="breadcrumb" id="breadcrumb">
                         <span class="breadcrumb-item root">
@@ -59,10 +61,10 @@
                     <div class="latest-commit-bar">
                         <div class="commit-info-left">
                             <i class="fa-solid fa-code-commit"></i>
-                            <span id="latest-commit-message">Loading...</span>
+                            <span id="latest-commit-message">Loading commit...</span>
                         </div>
                         <div class="commit-info-right">
-                            <span id="latest-commit-hash">Loading...</span>
+                            <span id="latest-commit-hash" class="commit-hash">Loading...</span>
                             <span id="latest-commit-date">Loading...</span>
                         </div>
                     </div>
@@ -90,6 +92,7 @@
                         <div class="file-header-left">
                             <button id="back-to-files" class="back-to-files-btn">
                                 <i class="fa-solid fa-arrow-left"></i>
+                                <span>Back to files</span>
                             </button>
                             <div class="file-path-info">
                                 <i class="fa-solid fa-file-code"></i>
@@ -97,35 +100,10 @@
                             </div>
                         </div>
                         <div class="file-actions">
-                            <div class="file-stats" id="file-stats">
-                                <!-- File stats -->
-                            </div>
+                            <div class="file-stats" id="file-stats"></div>
                         </div>
                     </div>
-                    <div id="file-content" class="file-content">
-                        <!-- File content will be populated -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Fullscreen File Viewer -->
-            <div id="fullscreen-viewer" class="fullscreen-viewer" style="display: none;">
-                <div class="fullscreen-header">
-                    <div class="fullscreen-file-info">
-                        <button id="close-fullscreen" class="close-button">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                        <div class="file-info">
-                            <i class="fa-solid fa-file-code"></i>
-                            <span class="file-path" id="fullscreen-file-path"></span>
-                        </div>
-                    </div>
-                    <div class="file-stats" id="fullscreen-file-stats">
-                        <!-- File stats will be populated -->
-                    </div>
-                </div>
-                <div id="fullscreen-file-content" class="fullscreen-file-content">
-                    <!-- Content will be populated -->
+                    <div id="file-content" class="file-content"></div>
                 </div>
             </div>
 
@@ -135,11 +113,11 @@
                     <div class="commits-header">
                         <h2>
                             <i class="fa-solid fa-clock-rotate-left"></i>
-                            Commit History
+                            <span>Commit History</span>
                         </h2>
                         <button id="refresh-commits" class="refresh-btn">
                             <i class="fa-solid fa-arrows-rotate"></i>
-                            Refresh
+                            <span>Refresh</span>
                         </button>
                     </div>
                     <div id="commits-list" class="commits-list">
@@ -160,5 +138,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <script src="/static/js/app.js"></script>
-</body>
+  </body>
 </html>
