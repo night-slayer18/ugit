@@ -6,12 +6,19 @@ This module handles stashing and restoring changes.
 
 import json
 import os
+import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from ..core.checkout import clear_working_directory
 from ..core.objects import get_object, hash_object
-from ..core.repository import Repository
-from ..utils.helpers import ensure_repository, get_ignored_patterns
+from ..core.repository import Index, Repository
+from ..utils.helpers import (
+    ensure_repository,
+    get_current_branch_name,
+    get_ignored_patterns,
+    should_ignore_file,
+)
 
 
 def stash(message: Optional[str] = None, include_untracked: bool = False) -> None:
@@ -33,9 +40,10 @@ def stash(message: Optional[str] = None, include_untracked: bool = False) -> Non
         return
 
     # Create stash entry
+    current_branch = get_current_branch_name(repo) or "detached HEAD"
     stash_data = {
         "message": message
-        or f"WIP on {_get_current_branch(repo)}: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+        or f"WIP on {current_branch}: {time.strftime('%Y-%m-%d %H:%M:%S')}",
         "timestamp": time.time(),
         "staged_files": staged_files,
         "working_changes": working_changes,
@@ -46,7 +54,7 @@ def stash(message: Optional[str] = None, include_untracked: bool = False) -> Non
     _save_stash(repo, stash_data)
 
     # Clear working directory and staging area
-    _clear_working_directory(repo)
+    clear_working_directory()
     _clear_staging_area(repo)
 
     print(f"Saved working directory and index state: {stash_data['message']}")
@@ -139,30 +147,9 @@ def stash_clear() -> None:
         print("No stashes to clear")
 
 
-def _get_staged_files(repo: Repository) -> Dict[str, str]:
+def _get_staged_files(repo: Repository) -> Dict[str, Tuple[str, float, int]]:
     """Get all currently staged files."""
-    index_path = os.path.join(repo.ugit_dir, "index")
-    staged_files: Dict[str, str] = {}
-
-    if not os.path.exists(index_path):
-        return staged_files
-
-    try:
-        with open(index_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-
-                parts = line.split(" ", 1)  # Split on space, not tab
-                if len(parts) >= 2:
-                    sha = parts[0]
-                    file_path = parts[1]
-                    staged_files[file_path] = sha
-    except (IOError, OSError):
-        pass
-
-    return staged_files
+    return Index(repo).read()
 
 
 def _get_working_changes(
@@ -185,7 +172,7 @@ def _get_working_changes(
             rel_path = os.path.relpath(file_path, repo.path)
 
             # Skip ignored files
-            if _should_ignore_file(rel_path, ignored_patterns):
+            if should_ignore_file(rel_path, ignored_patterns):
                 continue
 
             try:
@@ -193,7 +180,8 @@ def _get_working_changes(
                     content = f.read()
 
                 current_sha = hash_object(content, "blob", write=False)
-                staged_sha = staged_files.get(rel_path)
+                staged_entry = staged_files.get(rel_path)
+                staged_sha = staged_entry[0] if staged_entry else None
 
                 # Include if modified or untracked and include_untracked is True
                 if staged_sha != current_sha:
@@ -256,27 +244,29 @@ def _get_all_stashes(repo: Repository) -> List[Dict[str, Any]]:
 
 def _apply_stash_data(repo: Repository, stash_data: Dict) -> None:
     """Apply stash data to working directory and staging area."""
+    index = Index(repo)
+
     # Restore staged files
-    index_path = os.path.join(repo.ugit_dir, "index")
     if stash_data["staged_files"]:
-        with open(index_path, "w", encoding="utf-8") as f:
-            for file_path, sha in stash_data["staged_files"].items():
-                f.write(f"{sha} {file_path}\n")  # Use space, not tab
+        index.write(stash_data["staged_files"])
 
-                # Also restore to working directory
-                try:
-                    obj_type, content = get_object(sha)
-                    if obj_type == "blob":
-                        # Create directory if needed
-                        dir_path = os.path.dirname(file_path)
-                        if dir_path:
-                            os.makedirs(dir_path, exist_ok=True)
+        # Also restore to working directory
+        for file_path, (sha, _, _) in stash_data["staged_files"].items():
+            try:
+                obj_type, content = get_object(sha)
+                if obj_type == "blob":
+                    # Create directory if needed
+                    dir_path = os.path.dirname(file_path)
+                    if dir_path:
+                        os.makedirs(dir_path, exist_ok=True)
 
-                        # Write file
-                        with open(file_path, "wb") as f_out:
-                            f_out.write(content)
-                except (FileNotFoundError, IOError):
-                    print(f"Warning: Could not restore staged file {file_path}")
+                    # Write file
+                    with open(file_path, "wb") as f_out:
+                        f_out.write(content)
+            except (FileNotFoundError, IOError):
+                sys.stderr.write(
+                    f"Warning: Could not restore staged file {file_path}\n"
+                )
 
     # Restore working directory files
     for file_path, sha in stash_data["working_changes"].items():
@@ -292,7 +282,7 @@ def _apply_stash_data(repo: Repository, stash_data: Dict) -> None:
                 with open(file_path, "wb") as f:
                     f.write(content)
         except (FileNotFoundError, IOError):
-            print(f"Warning: Could not restore {file_path}")
+            sys.stderr.write(f"Warning: Could not restore {file_path}\n")
 
 
 def _remove_stash(repo: Repository, stash_id: int) -> None:
@@ -310,56 +300,8 @@ def _remove_stash(repo: Repository, stash_id: int) -> None:
             os.remove(stash_file)
 
 
-def _clear_working_directory(repo: Repository) -> None:
-    """Clear working directory of tracked files."""
-    # Get list of tracked files (from HEAD commit)
-    head_commit = repo.get_head_ref()
-    if not head_commit:
-        return
-
-    try:
-        from .checkout import _clear_working_directory
-
-        _clear_working_directory()
-    except ImportError:
-        # Fallback implementation
-        pass
-
-
 def _clear_staging_area(repo: Repository) -> None:
     """Clear the staging area."""
     index_path = os.path.join(repo.ugit_dir, "index")
     if os.path.exists(index_path):
         os.remove(index_path)
-
-
-def _get_current_branch(repo: Repository) -> str:
-    """Get current branch name or HEAD."""
-    head_path = os.path.join(repo.ugit_dir, "HEAD")
-
-    if not os.path.exists(head_path):
-        return "HEAD"
-
-    try:
-        with open(head_path, "r", encoding="utf-8") as f:
-            head_content = f.read().strip()
-
-        if head_content.startswith("ref: refs/heads/"):
-            return head_content[16:]  # Remove "ref: refs/heads/" prefix
-
-        return "HEAD"  # Detached HEAD
-    except (IOError, OSError):
-        return "HEAD"
-
-
-def _should_ignore_file(file_path: str, ignored_patterns: List[str]) -> bool:
-    """Check if a file should be ignored."""
-    import fnmatch
-
-    for pattern in ignored_patterns:
-        if fnmatch.fnmatch(file_path, pattern) or fnmatch.fnmatch(
-            os.path.basename(file_path), pattern
-        ):
-            return True
-
-    return False

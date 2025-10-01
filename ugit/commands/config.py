@@ -9,7 +9,7 @@ from ..utils.helpers import ensure_repository
 
 def config(
     key: Optional[str] = None, value: Optional[str] = None, list_all: bool = False
-) -> None:
+) -> int:
     """
     Manage ugit configuration.
 
@@ -17,6 +17,9 @@ def config(
         key: Configuration key (section.option)
         value: Configuration value
         list_all: List all configuration options
+
+    Returns:
+        0 on success, 1 on error
     """
     try:
         repo = ensure_repository()
@@ -27,16 +30,18 @@ def config(
 
     if list_all:
         _list_all_config(config_obj)
+        return 0
     elif key is None and value is None:
         _show_help()
+        return 0
     elif value is None:
         if key is None:
             raise ValueError("Key cannot be None when getting config value")
-        _get_config(config_obj, key)
+        return _get_config(config_obj, key)
     else:
         if key is None:
             raise ValueError("Key cannot be None when setting config value")
-        _set_config(config_obj, key, value)
+        return _set_config(config_obj, key, value)
 
 
 def _show_help() -> None:
@@ -52,30 +57,38 @@ def _show_help() -> None:
     print("  ugit config --list")
 
 
-def _set_config(config_obj: Config, key: str, value: str) -> None:
+def _set_config(config_obj: Config, key: str, value: str) -> int:
     """Set a configuration value."""
     if "." not in key:
-        print("Error: Configuration key must be in 'section.option' format")
-        sys.exit(1)
+        print(
+            "Error: Configuration key must be in 'section.option' format",
+            file=sys.stderr,
+        )
+        return 1
 
     section, option = key.split(".", 1)
     config_obj.set(section, option, value)
     print(f"Set {key} = {value}")
+    return 0
 
 
-def _get_config(config_obj: Config, key: str) -> None:
+def _get_config(config_obj: Config, key: str) -> int:
     """Get a configuration value."""
     if "." not in key:
-        print("Error: Configuration key must be in 'section.option' format")
-        sys.exit(1)
+        print(
+            "Error: Configuration key must be in 'section.option' format",
+            file=sys.stderr,
+        )
+        return 1
 
     section, option = key.split(".", 1)
     value = config_obj.get(section, option)
     if value is None:
-        print(f"Configuration key '{key}' not found")
-        sys.exit(1)
+        print(f"Configuration key '{key}' not found", file=sys.stderr)
+        return 1
     else:
         print(value)
+        return 0
 
 
 def _list_all_config(config_obj: Config) -> None:

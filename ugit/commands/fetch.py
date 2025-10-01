@@ -6,44 +6,58 @@ This module handles fetching changes from remote repositories without merging th
 
 import os
 import shutil
+import sys
 from typing import Dict, List, Optional, Set
 
 from ..core.objects import get_object, object_exists
 from ..core.repository import Repository
+from ..utils.helpers import is_local_path
 from .remote import get_all_remotes, get_remote_url
 
 
-def fetch(remote_name: str = "origin", branch: Optional[str] = None) -> None:
+def fetch(remote_name: str = "origin", branch: Optional[str] = None) -> int:
     """
     Fetch objects and refs from a remote repository.
 
     Args:
         remote_name: Name of remote to fetch from
         branch: Specific branch to fetch (optional)
+
+    Returns:
+        0 on success, 1 on error
     """
     repo = Repository()
 
     if not repo.is_repository():
         print("Not a ugit repository")
-        return
+        return 1
 
     # Get remote URL
     remote_url = get_remote_url(remote_name)
     if not remote_url:
-        print(f"fatal: '{remote_name}' does not appear to be a ugit repository")
-        return
+        print(
+            f"fatal: '{remote_name}' does not appear to be a ugit repository",
+            file=sys.stderr,
+        )
+        return 1
 
     print(f"From {remote_url}")
 
     try:
-        if _is_local_path(remote_url):
+        if is_local_path(remote_url):
             _fetch_local(repo, remote_name, remote_url, branch)
         else:
-            print(f"fatal: remote protocols not yet supported: {remote_url}")
-            return
+            print(
+                f"fatal: remote protocols not yet supported: {remote_url}",
+                file=sys.stderr,
+            )
+            return 1
 
     except Exception as e:
-        print(f"fatal: failed to fetch from '{remote_name}': {e}")
+        print(f"fatal: failed to fetch from '{remote_name}': {e}", file=sys.stderr)
+        return 1
+
+    return 0
 
 
 def _fetch_local(
@@ -79,7 +93,7 @@ def _fetch_local(
 
     for branch_name, commit_sha in remote_refs.items():
         # Check if we need to fetch this commit
-        if not object_exists(commit_sha):
+        if not object_exists(commit_sha, repo=repo):
             commits_to_fetch.add(commit_sha)
 
         # Update local remote ref
@@ -173,7 +187,7 @@ def _fetch_objects(repo: Repository, remote_url: str, commits: Set[str]) -> None
     while objects_to_fetch:
         sha = objects_to_fetch.pop()
 
-        if sha in fetched_objects or object_exists(sha):
+        if sha in fetched_objects or object_exists(sha, repo=repo):
             continue
 
         # Copy object from remote
@@ -182,7 +196,7 @@ def _fetch_objects(repo: Repository, remote_url: str, commits: Set[str]) -> None
 
             # Find dependencies of this object
             try:
-                obj_type, obj_content = get_object(sha)
+                obj_type, obj_content = get_object(sha, repo=repo)
 
                 if obj_type == "commit":
                     # Parse JSON commit to find tree and parents
@@ -248,24 +262,3 @@ def _copy_object(remote_objects_dir: str, local_objects_dir: str, sha: str) -> b
                 continue
 
     return False
-
-
-def _is_local_path(url: str) -> bool:
-    """
-    Check if URL is a local filesystem path.
-
-    Args:
-        url: URL to check
-
-    Returns:
-        True if local path
-    """
-    return (
-        os.path.isabs(url)
-        or url.startswith("./")
-        or url.startswith("../")
-        or (
-            not url.startswith(("http://", "https://", "git://", "ssh://"))
-            and "@" not in url
-        )
-    )

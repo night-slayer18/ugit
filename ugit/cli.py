@@ -73,6 +73,10 @@ Examples:
         """,
     )
 
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose output"
+    )
+
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # init command
@@ -270,6 +274,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1
 
     try:
+        result: Optional[int] = 0
+
         if args.command == "init":
             init()
         elif args.command == "add":
@@ -277,7 +283,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         elif args.command == "commit":
             commit(args.message, args.author)
         elif args.command == "config":
-            config(args.key, args.value, args.list)
+            result = config(args.key, args.value, args.list)
         elif args.command == "status":
             status()
         elif args.command == "log":
@@ -309,32 +315,36 @@ def main(argv: Optional[List[str]] = None) -> int:
                 include_untracked = getattr(args, "include_untracked", False)
                 stash(message, include_untracked)
             else:
-                print(f"Unknown stash command: {args.stash_command}")
+                sys.stderr.write(f"Unknown stash command: {args.stash_command}\n")
                 return 1
         elif args.command == "clone":
             clone(args.url, args.directory)
         elif args.command == "remote":
             remote(args)
         elif args.command == "fetch":
-            fetch(args.remote, args.branch)
+            result = fetch(args.remote, args.branch)
         elif args.command == "pull":
-            pull(args.remote, args.branch)
+            result = pull(args.remote, args.branch)
         elif args.command == "push":
-            push(args.remote, args.branch, args.force)
+            result = push(args.remote, args.branch, args.force)
         elif args.command == "serve":
-            serve(args.port, args.host, not args.no_browser)
+            result = serve(args.port, args.host, not args.no_browser)
         else:
-            print(f"Unknown command: {args.command}")
+            sys.stderr.write(f"Unknown command: {args.command}\n")
             return 1
 
+        return result if result is not None else 0
+
+    except RuntimeError as e:
+        # Handle RuntimeError from ensure_repository()
+        sys.stderr.write(f"Error: {e}\n")
+        return 1
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
         return 130
     except Exception as e:
-        print(f"Error: {e}")
+        sys.stderr.write(f"Error: {e}\n")
         return 1
-
-    return 0
 
 
 if __name__ == "__main__":

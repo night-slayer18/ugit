@@ -6,16 +6,18 @@ This module handles uploading local changes to remote repositories.
 
 import os
 import shutil
+import sys
 from typing import Optional, Set
 
 from ..core.objects import get_object, object_exists
 from ..core.repository import Repository
+from ..utils.helpers import get_current_branch_name, is_local_path
 from .remote import get_remote_url
 
 
 def push(
     remote_name: str = "origin", branch: Optional[str] = None, force: bool = False
-) -> None:
+) -> int:
     """
     Push local changes to a remote repository.
 
@@ -23,50 +25,62 @@ def push(
         remote_name: Name of remote to push to
         branch: Specific branch to push (optional)
         force: Force push even if not fast-forward
+
+    Returns:
+        0 on success, 1 on error
     """
     repo = Repository()
 
     if not repo.is_repository():
         print("Not a ugit repository")
-        return
+        return 1
 
     # Get remote URL
     remote_url = get_remote_url(remote_name)
     if not remote_url:
-        print(f"fatal: '{remote_name}' does not appear to be a ugit repository")
-        return
+        print(
+            f"fatal: '{remote_name}' does not appear to be a ugit repository",
+            file=sys.stderr,
+        )
+        return 1
 
     # Get current branch if none specified
     if branch is None:
-        branch = _get_current_branch(repo)
+        branch = get_current_branch_name(repo)
         if not branch:
-            print("fatal: You are not currently on a branch")
-            return
+            print("fatal: You are not currently on a branch", file=sys.stderr)
+            return 1
 
     # Get local branch ref
     local_branch_path = os.path.join(repo.ugit_dir, "refs", "heads", branch)
     if not os.path.exists(local_branch_path):
-        print(f"fatal: src refspec {branch} does not match any")
-        return
+        print(f"fatal: src refspec {branch} does not match any", file=sys.stderr)
+        return 1
 
     try:
         with open(local_branch_path, "r") as f:
             local_sha = f.read().strip()
     except (IOError, OSError) as e:
-        print(f"fatal: Failed to read local ref: {e}")
-        return
+        print(f"fatal: Failed to read local ref: {e}", file=sys.stderr)
+        return 1
 
     print(f"Pushing to {remote_url}")
 
     try:
-        if _is_local_path(remote_url):
+        if is_local_path(remote_url):
             _push_local(repo, remote_name, remote_url, branch, local_sha, force)
         else:
-            print(f"fatal: remote protocols not yet supported: {remote_url}")
-            return
+            print(
+                f"fatal: remote protocols not yet supported: {remote_url}",
+                file=sys.stderr,
+            )
+            return 1
 
     except Exception as e:
-        print(f"fatal: failed to push to '{remote_name}': {e}")
+        print(f"fatal: failed to push to '{remote_name}': {e}", file=sys.stderr)
+        return 1
+
+    return 0
 
 
 def _push_local(
@@ -136,36 +150,10 @@ def _push_local(
         else:
             print(f"   {remote_sha[:8]}..{local_sha[:8]}  {branch} -> {branch}")
     else:
-        print(f" * [new branch] {branch} -> {branch}")
+        print(f"* [new branch] {branch} -> {branch}")
 
     if objects_pushed:
         print(f"Pushed {objects_pushed} objects")
-
-
-def _get_current_branch(repo: Repository) -> Optional[str]:
-    """
-    Get the name of the current branch.
-
-    Args:
-        repo: Repository instance
-
-    Returns:
-        Current branch name or None if detached HEAD
-    """
-    head_path = os.path.join(repo.ugit_dir, "HEAD")
-    if not os.path.exists(head_path):
-        return None
-
-    try:
-        with open(head_path, "r") as f:
-            head_content = f.read().strip()
-
-        if head_content.startswith("ref: refs/heads/"):
-            return head_content[16:]  # Remove "ref: refs/heads/"
-
-        return None  # Detached HEAD
-    except (IOError, OSError):
-        return None
 
 
 def _is_fast_forward(repo: Repository, base_sha: str, target_sha: str) -> bool:
@@ -198,7 +186,7 @@ def _is_fast_forward(repo: Repository, base_sha: str, target_sha: str) -> bool:
             return True
 
         try:
-            commit_type, commit_content = get_object(current_sha)
+            commit_type, commit_content = get_object(current_sha, repo=repo)
             if commit_type != "commit":
                 continue
 
@@ -241,7 +229,7 @@ def _push_objects(repo: Repository, remote_url: str, start_sha: str) -> int:
 
     # Find all objects we need to push
     objects_to_push: Set[str] = set()
-    _collect_objects(start_sha, objects_to_push, set(), remote_url)
+    _collect_objects(start_sha, objects_to_push, set(), remote_url, repo)
 
     # Push objects
     pushed_count = 0
@@ -253,7 +241,7 @@ def _push_objects(repo: Repository, remote_url: str, start_sha: str) -> int:
 
 
 def _collect_objects(
-    sha: str, to_push: Set[str], visited: Set[str], remote_url: str
+    sha: str, to_push: Set[str], visited: Set[str], remote_url: str, repo: Repository
 ) -> None:
     """
     Recursively collect all objects that need to be pushed.
@@ -263,6 +251,7 @@ def _collect_objects(
         to_push: Set to add objects to
         visited: Set of already visited objects
         remote_url: Remote repository path
+        repo: Local repository instance
     """
     if sha in visited:
         return
@@ -275,7 +264,7 @@ def _collect_objects(
     to_push.add(sha)
 
     try:
-        obj_type, obj_content = get_object(sha)
+        obj_type, obj_content = get_object(sha, repo=repo)
 
         if obj_type == "commit":
             # Parse JSON commit to find tree and parents
@@ -284,13 +273,15 @@ def _collect_objects(
             commit_data = json.loads(obj_content.decode("utf-8"))
 
             if "tree" in commit_data:
-                _collect_objects(commit_data["tree"], to_push, visited, remote_url)
+                _collect_objects(
+                    commit_data["tree"], to_push, visited, remote_url, repo
+                )
 
             if "parent" in commit_data:
                 parent = commit_data["parent"]
                 # Only collect if it's a real parent SHA (not a ref)
-                if not parent.startswith("ref: refs/heads/"):
-                    _collect_objects(parent, to_push, visited, remote_url)
+                if parent is not None and not parent.startswith("ref: refs/heads/"):
+                    _collect_objects(parent, to_push, visited, remote_url, repo)
 
         elif obj_type == "tree":
             # Parse JSON tree to find blobs and subtrees
@@ -301,7 +292,7 @@ def _collect_objects(
             # Tree is a list of [filename, sha] pairs
             for entry in tree_data:
                 if len(entry) >= 2:
-                    _collect_objects(entry[1], to_push, visited, remote_url)
+                    _collect_objects(entry[1], to_push, visited, remote_url, repo)
 
     except (FileNotFoundError, ValueError, IndexError):
         # Skip objects that can't be read or parsed
@@ -365,24 +356,3 @@ def _copy_object_to_remote(
                 continue
 
     return False
-
-
-def _is_local_path(url: str) -> bool:
-    """
-    Check if URL is a local filesystem path.
-
-    Args:
-        url: URL to check
-
-    Returns:
-        True if local path
-    """
-    return (
-        os.path.isabs(url)
-        or url.startswith("./")
-        or url.startswith("../")
-        or (
-            not url.startswith(("http://", "https://", "git://", "ssh://"))
-            and "@" not in url
-        )
-    )

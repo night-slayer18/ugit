@@ -5,10 +5,12 @@ This module handles resetting the staging area and working directory.
 """
 
 import os
+import sys
 from typing import List, Optional
 
+from ..core.checkout import checkout_commit
 from ..core.objects import get_object
-from ..core.repository import Repository
+from ..core.repository import Index, Repository
 from ..utils.helpers import ensure_repository
 
 
@@ -60,17 +62,17 @@ def _reset_to_commit(
         commit_sha = _resolve_target(repo, target)
 
         if not commit_sha:
-            print(f"Error: Cannot resolve '{target}'")
+            sys.stderr.write(f"Error: Cannot resolve '{target}'\n")
             return
 
         # Validate commit exists
         try:
             commit_type, commit_data = get_object(commit_sha)
             if commit_type != "commit":
-                print(f"Error: {target} is not a commit")
+                sys.stderr.write(f"Error: {target} is not a commit\n")
                 return
         except FileNotFoundError:
-            print(f"Error: Commit {target} not found")
+            sys.stderr.write(f"Error: Commit {target} not found\n")
             return
 
         # Update HEAD
@@ -92,7 +94,7 @@ def _reset_to_commit(
             print(f"Reset to {commit_sha[:7]}")
 
     except Exception as e:
-        print(f"Error during reset: {e}")
+        sys.stderr.write(f"Error during reset: {e}\n")
 
 
 def _reset_staging_area(repo: Repository) -> None:
@@ -117,53 +119,26 @@ def _reset_working_directory(repo: Repository, commit_sha: str) -> None:
     """Reset working directory to match a commit."""
     try:
         # Use checkout functionality to restore files
-        from .checkout import _checkout_commit
-
-        _checkout_commit(repo, commit_sha)
+        checkout_commit(repo, commit_sha)
     except Exception as e:
-        print(f"Error resetting working directory: {e}")
+        sys.stderr.write(f"Error resetting working directory: {e}\n")
 
 
 def _unstage_file(repo: Repository, file_path: str) -> None:
     """Remove a specific file from the staging area."""
-    index_path = os.path.join(repo.ugit_dir, "index")
+    index = Index(repo)
+    index_data = index.read()
 
-    if not os.path.exists(index_path):
-        print(f"'{file_path}' is not staged")
-        return
+    # The file_path from the command line might not be normalized
+    rel_path = os.path.relpath(file_path)
+    normalized_path = os.path.normpath(rel_path).replace(os.sep, "/")
 
-    # Read current index
-    staged_files = []
-    file_found = False
-
-    with open(index_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-
-            parts = line.split(" ", 1)  # Split on space, not tab
-            if len(parts) >= 2:
-                staged_file_path = parts[1]
-                if staged_file_path == file_path:
-                    file_found = True
-                    continue
-                staged_files.append(line)
-
-    if not file_found:
-        print(f"'{file_path}' is not staged")
-        return
-
-    # Write back the index without the unstaged file
-    if staged_files:
-        with open(index_path, "w", encoding="utf-8") as f:
-            for line in staged_files:
-                f.write(line + "\n")
+    if normalized_path in index_data:
+        del index_data[normalized_path]
+        index.write(index_data)
+        print(f"Unstaged '{file_path}'")
     else:
-        # No files left in index
-        os.remove(index_path)
-
-    print(f"Unstaged '{file_path}'")
+        print(f"'{file_path}' is not staged")
 
 
 def _resolve_target(repo: Repository, target: str) -> Optional[str]:

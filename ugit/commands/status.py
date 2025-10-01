@@ -9,7 +9,12 @@ from typing import List, Set
 
 from ..core.objects import get_object, hash_object
 from ..core.repository import Index
-from ..utils.helpers import ensure_repository, get_ignored_patterns, walk_files
+from ..utils.helpers import (
+    ensure_repository,
+    get_ignored_patterns,
+    should_ignore_file,
+    walk_files,
+)
 
 
 def status() -> None:
@@ -31,16 +36,16 @@ def status() -> None:
 
     # Display status sections
     if staged_files:
-        _print_status_section("Changes to be committed:", staged_files, "green")
+        _print_status_section("Changes to be committed:", staged_files)
 
     if modified_files:
-        _print_status_section("Changes not staged for commit:", modified_files, "red")
+        _print_status_section("Changes not staged for commit:", modified_files)
 
     if deleted_files:
-        _print_status_section("Deleted files:", deleted_files, "red")
+        _print_status_section("Deleted files:", deleted_files)
 
     if untracked_files:
-        _print_status_section("Untracked files:", untracked_files, "red")
+        _print_status_section("Untracked files:", untracked_files)
 
     if not any([staged_files, modified_files, untracked_files, deleted_files]):
         print("Nothing to commit, working tree clean")
@@ -69,19 +74,26 @@ def _get_committed_files(head_sha: str) -> dict:
 def _get_staged_files(index_data: dict, committed_files: dict) -> List[str]:
     """Get list of files staged for commit."""
     staged = []
-    for path, sha in index_data.items():
-        if path not in committed_files or committed_files[path] != sha:
-            status_char = "A" if path not in committed_files else "M"
-            staged.append(f"{status_char} {path}")
+    for path, (sha, _, _) in index_data.items():
+        if path not in committed_files:
+            staged.append(f"A {path}")
+        elif committed_files[path] != sha:
+            staged.append(f"M {path}")
     return staged
 
 
 def _get_modified_files(index_data: dict) -> List[str]:
     """Get list of tracked files that have been modified."""
     modified = []
-    for path, stored_sha in index_data.items():
+    for path, (stored_sha, stored_mtime, stored_size) in index_data.items():
         if os.path.exists(path):
             try:
+                stat = os.stat(path)
+                # Check metadata first for a quick check
+                if stat.st_mtime == stored_mtime and stat.st_size == stored_size:
+                    continue  # Assumed unchanged
+
+                # If metadata differs, then check hash
                 with open(path, "rb") as f:
                     data = f.read()
                 current_sha = hash_object(data, "blob", write=False)
@@ -98,37 +110,11 @@ def _get_untracked_files(tracked_files: Set[str]) -> List[str]:
     ignored_patterns = get_ignored_patterns()
 
     for file_path in walk_files():
-        if file_path not in tracked_files and not _should_ignore_file(
+        if file_path not in tracked_files and not should_ignore_file(
             file_path, ignored_patterns
         ):
             untracked.append(f"? {file_path}")
     return untracked
-
-
-def _should_ignore_file(file_path: str, ignored_patterns: List[str]) -> bool:
-    """Check if a file should be ignored based on patterns."""
-    for pattern in ignored_patterns:
-        # Check full path and just filename
-        if fnmatch.fnmatch(file_path, pattern) or fnmatch.fnmatch(
-            os.path.basename(file_path), pattern
-        ):
-            return True
-
-        # Handle directory patterns (ending with /)
-        if pattern.endswith("/"):
-            dir_pattern = pattern[:-1]  # Remove trailing slash
-            path_parts = file_path.split(os.sep)
-            for part in path_parts[:-1]:  # Exclude the filename itself
-                if fnmatch.fnmatch(part, dir_pattern):
-                    return True
-        else:
-            # Check if any parent directory matches the pattern
-            path_parts = file_path.split(os.sep)
-            for part in path_parts[:-1]:  # Exclude the filename itself
-                if fnmatch.fnmatch(part, pattern):
-                    return True
-
-    return False
 
 
 def _get_deleted_files(tracked_files: Set[str]) -> List[str]:
@@ -140,7 +126,7 @@ def _get_deleted_files(tracked_files: Set[str]) -> List[str]:
     return deleted
 
 
-def _print_status_section(title: str, files: List[str], color: str) -> None:
+def _print_status_section(title: str, files: List[str]) -> None:
     """Print a section of the status output."""
     if files:
         print(f"\n{title}")

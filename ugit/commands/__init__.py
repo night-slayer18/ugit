@@ -3,7 +3,7 @@ Command implementations for ugit.
 """
 
 from .add import add
-from .branch import branch, checkout_branch
+from .branch import branch
 from .checkout import checkout
 from .clone import clone
 from .commit import commit
@@ -31,7 +31,6 @@ __all__ = [
     "status",
     "diff",
     "branch",
-    "checkout_branch",
     "reset",
     "unstage",
     "merge",

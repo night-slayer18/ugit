@@ -1,7 +1,8 @@
 """Utility functions for ugit."""
 
+import fnmatch
 import os
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, cast
 
 if TYPE_CHECKING:
     from ..core.repository import Repository
@@ -102,14 +103,13 @@ def ensure_repository() -> "Repository":
         Repository instance
 
     Raises:
-        SystemExit: If not in a repository
+        RuntimeError: If not in a repository
     """
     from ..core.repository import Repository
 
     repo = Repository()
     if not repo.is_repository():
-        print("Not a ugit repository")
-        raise SystemExit(1)
+        raise RuntimeError("Not a ugit repository")
     return repo
 
 
@@ -140,12 +140,15 @@ def get_ignored_patterns(repo_path: str = ".") -> list:
     return patterns
 
 
-def get_commit_data(commit_sha: str) -> Dict[str, Any]:
+def get_commit_data(
+    commit_sha: str, repo: Optional["Repository"] = None
+) -> Dict[str, Any]:
     """
     Get commit data from SHA.
 
     Args:
         commit_sha: SHA of the commit
+        repo: Repository instance (optional, defaults to current repo)
 
     Returns:
         Parsed commit data
@@ -156,14 +159,199 @@ def get_commit_data(commit_sha: str) -> Dict[str, Any]:
     import json
 
     from ..core.objects import get_object
+    from ..core.repository import Repository
+
+    if repo is None:
+        repo = Repository()
 
     try:
-        type_, data = get_object(commit_sha)
+        type_, data = get_object(commit_sha, repo=repo)
         if type_ != "commit":
             raise ValueError(f"Expected commit object, got {type_}")
-        result = json.loads(data.decode())
-        if not isinstance(result, dict):
-            raise ValueError("Invalid commit data format")
-        return result
+        try:
+            return cast(Dict[str, Any], json.loads(data.decode()))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            commit: Dict[str, Any] = {}
+            lines = data.decode().splitlines()
+            for i, line in enumerate(lines):
+                if not line:
+                    commit["message"] = "\n".join(lines[i + 1 :])
+                    break
+                key, value = line.split(" ", 1)
+                if key == "tree":
+                    commit["tree"] = value
+                elif key == "parent":
+                    if "parent" in commit:
+                        if "parents" not in commit:
+                            commit["parents"] = [commit["parent"]]
+                        commit["parents"].append(value)
+                    else:
+                        commit["parent"] = value
+                elif key == "author":
+                    commit["author"] = value
+                elif key == "committer":
+                    commit["committer"] = value
+            return commit
     except (json.JSONDecodeError, FileNotFoundError) as e:
         raise ValueError(f"Invalid commit {commit_sha}: {e}")
+
+
+def get_tree_entries(
+    tree_sha: str, repo: Optional["Repository"] = None
+) -> List[tuple[str, str, str]]:
+    """Get entries from a tree object, supporting both JSON and Git binary formats."""
+    import json
+
+    from ..core.objects import get_object
+    from ..core.repository import Repository
+
+    if repo is None:
+        repo = Repository()
+
+    try:
+        tree_type, tree_content = get_object(tree_sha, repo=repo)
+        if tree_type != "tree":
+            raise ValueError(f"Object {tree_sha} is not a tree")
+
+        try:
+            # JSON format: list of [path, sha]
+            entries_json = json.loads(tree_content.decode())
+            entries = []
+            for path, sha in entries_json:
+                obj_type, _ = get_object(sha, repo=repo)
+                mode = "40000" if obj_type == "tree" else "100644"
+                entries.append((mode, path, sha))
+            return entries
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # Fallback to Git-style binary parsing
+            entries = []
+            content = tree_content
+            while content:
+                null_idx = content.find(b"\x00")
+                if null_idx == -1:
+                    break
+                mode_name = content[:null_idx].decode("utf-8")
+                sha_bytes = content[null_idx + 1 : null_idx + 21]
+                if len(sha_bytes) < 20:
+                    break
+                sha = sha_bytes.hex()
+                content = content[null_idx + 21 :]
+                parts = mode_name.split(" ", 1)
+                if len(parts) == 2:
+                    mode, name = parts
+                    entries.append((mode, name, sha))
+            return entries
+    except (FileNotFoundError, ValueError) as e:
+        raise ValueError(f"Invalid tree {tree_sha}: {e}")
+
+
+def should_ignore_file(file_path: str, ignored_patterns: List[str]) -> bool:
+    """Check if a file should be ignored based on patterns."""
+    for pattern in ignored_patterns:
+        # Check full path and just filename
+        if fnmatch.fnmatch(file_path, pattern) or fnmatch.fnmatch(
+            os.path.basename(file_path), pattern
+        ):
+            return True
+
+        # Handle directory patterns (ending with /)
+        if pattern.endswith("/"):
+            dir_pattern = pattern[:-1]  # Remove trailing slash
+            path_parts = file_path.split(os.sep)
+            for part in path_parts[:-1]:  # Exclude the filename itself
+                if fnmatch.fnmatch(part, dir_pattern):
+                    return True
+        else:
+            # Check if any parent directory matches the pattern
+            path_parts = file_path.split(os.sep)
+            for part in path_parts[:-1]:  # Exclude the filename itself
+                if fnmatch.fnmatch(part, pattern):
+                    return True
+
+    return False
+
+
+def _get_current_branch(repo: "Repository") -> Optional[str]:
+    """Get the name of the current branch."""
+    head_path = os.path.join(repo.ugit_dir, "HEAD")
+
+    if not os.path.exists(head_path):
+        return None
+
+    try:
+        with open(head_path, "r", encoding="utf-8") as f:
+            head_content = f.read().strip()
+
+        if head_content.startswith("ref: refs/heads/"):
+            return head_content[16:]  # Remove "ref: refs/heads/" prefix
+
+        return None  # Detached HEAD
+    except (IOError, OSError):
+        return None
+
+
+def get_current_branch_name(repo: Optional["Repository"] = None) -> Optional[str]:
+    """Get current branch name (utility function for other modules)."""
+    from ..core.repository import Repository
+
+    if repo is None:
+        repo = Repository()
+        if not repo.is_repository():
+            return None
+
+    return _get_current_branch(repo)
+
+
+def is_local_path(url: str) -> bool:
+    """
+    Check if a URL represents a local file path.
+
+    Args:
+        url: URL or path to check
+
+    Returns:
+        True if URL is a local path
+    """
+    if url.startswith(("http://", "https://", "ssh://", "git://", "git@")):
+        return False
+    return os.path.exists(url) or os.path.isabs(url)
+
+
+def is_ancestor(repo: "Repository", ancestor_sha: str, descendant_sha: str) -> bool:
+    """
+    Check if ancestor_sha is an ancestor of descendant_sha.
+
+    Args:
+        repo: Repository instance
+        ancestor_sha: Potential ancestor commit SHA
+        descendant_sha: Potential descendant commit SHA
+
+    Returns:
+        True if ancestor_sha is an ancestor of descendant_sha
+    """
+    if ancestor_sha == descendant_sha:
+        return True
+
+    visited = set()
+    stack = [descendant_sha]
+
+    while stack:
+        current = stack.pop()
+        if current is None or current in visited:
+            continue
+        if current == ancestor_sha:
+            return True
+
+        visited.add(current)
+
+        try:
+            commit_data = get_commit_data(current, repo=repo)
+            # Handle both single parent and multiple parents
+            if "parent" in commit_data and commit_data["parent"] is not None:
+                stack.append(commit_data["parent"])
+            if "parents" in commit_data:
+                stack.extend(p for p in commit_data["parents"] if p is not None)
+        except (FileNotFoundError, ValueError):
+            continue
+
+    return False

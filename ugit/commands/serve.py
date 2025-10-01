@@ -3,11 +3,7 @@ Web server command for ugit.
 """
 
 import os
-import signal
-import subprocess  # nosec - subprocess is needed for starting web server
-import sys
 import webbrowser
-from pathlib import Path
 from typing import Optional
 
 from ugit.utils.helpers import ensure_repository
@@ -29,7 +25,7 @@ def serve(
         repo = ensure_repository()
         repo_root = repo.path
 
-        print(f"Starting ugit web interface...")
+        print("Starting ugit web interface...")
         print(f"Repository: {repo_root}")
         print(f"Server: http://{host}:{port}")
         print("Press Ctrl+C to stop the server")
@@ -42,13 +38,13 @@ def serve(
             import uvicorn
 
             from ugit.web.server import create_app
-        except ImportError as e:
-            print(f"Error: Web dependencies not installed.")
-            print(f"Install ugit with web support using:")
-            print(f"  pip install ugit-cli[web]")
-            print(f"")
-            print(f"Or install dependencies manually:")
-            print(f"  pip install fastapi uvicorn jinja2 python-multipart aiofiles")
+        except ImportError:
+            print("Error: Web dependencies not installed.")
+            print("Install ugit with web support using:")
+            print("  pip install ugit-cli[web]")
+            print()
+            print("Or install dependencies manually:")
+            print("  pip install fastapi uvicorn jinja2 python-multipart aiofiles")
             return 1
 
         # Create the FastAPI app

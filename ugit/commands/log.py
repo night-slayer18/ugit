@@ -3,6 +3,7 @@ Display commit history.
 """
 
 import json
+import sys
 from datetime import datetime
 from typing import Optional
 
@@ -39,7 +40,7 @@ def log(
         try:
             type_, data = get_object(current)
             if type_ != "commit":
-                print(f"Error: Expected commit object, got {type_}")
+                print(f"Error: Expected commit object, got {type_}", file=sys.stderr)
                 break
 
             commit = json.loads(data.decode())
@@ -70,7 +71,7 @@ def log(
             count += 1
 
         except (json.JSONDecodeError, FileNotFoundError, ValueError) as e:
-            print(f"Error reading commit {current}: {e}")
+            print(f"Error reading commit {current}: {e}", file=sys.stderr)
             break
 
 

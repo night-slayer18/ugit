@@ -6,11 +6,21 @@ This module handles merging branches.
 
 import json
 import os
+import sys
+import time
 from typing import Dict, Optional, Set
 
+from ..core.checkout import checkout_commit
 from ..core.objects import get_object, hash_object
 from ..core.repository import Repository
-from ..utils.helpers import ensure_repository
+from ..utils.config import Config
+from ..utils.helpers import (
+    ensure_repository,
+    get_commit_data,
+    get_current_branch_name,
+    get_tree_entries,
+    is_ancestor,
+)
 
 
 def merge(branch_name: str, no_ff: bool = False) -> None:
@@ -24,19 +34,19 @@ def merge(branch_name: str, no_ff: bool = False) -> None:
     repo = ensure_repository()
 
     # Get current branch
-    current_branch = _get_current_branch(repo)
+    current_branch = get_current_branch_name(repo)
     if not current_branch:
-        print("Not on any branch - cannot merge")
+        print("Not on any branch - cannot merge", file=sys.stderr)
         return
 
     if branch_name == current_branch:
-        print(f"Cannot merge branch '{branch_name}' into itself")
+        print(f"Cannot merge branch '{branch_name}' into itself", file=sys.stderr)
         return
 
     # Check if target branch exists
     branch_path = os.path.join(repo.ugit_dir, "refs", "heads", branch_name)
     if not os.path.exists(branch_path):
-        print(f"Branch '{branch_name}' does not exist")
+        print(f"Branch '{branch_name}' does not exist", file=sys.stderr)
         return
 
     # Get commit SHAs
@@ -45,11 +55,11 @@ def merge(branch_name: str, no_ff: bool = False) -> None:
 
     current_commit = repo.get_head_ref()
     if not current_commit:
-        print("No current commit to merge into")
+        print("No current commit to merge into", file=sys.stderr)
         return
 
     # Check if it's a fast-forward merge
-    if _is_ancestor(repo, current_commit, merge_commit):
+    if is_ancestor(repo, current_commit, merge_commit):
         if no_ff:
             _create_merge_commit(repo, current_commit, merge_commit, branch_name)
         else:
@@ -59,52 +69,12 @@ def merge(branch_name: str, no_ff: bool = False) -> None:
         _three_way_merge(repo, current_commit, merge_commit, branch_name)
 
 
-def _get_current_branch(repo: Repository) -> Optional[str]:
-    """Get the name of the current branch."""
-    head_path = os.path.join(repo.ugit_dir, "HEAD")
-
-    if not os.path.exists(head_path):
-        return None
-
-    try:
-        with open(head_path, "r", encoding="utf-8") as f:
-            head_content = f.read().strip()
-
-        if head_content.startswith("ref: refs/heads/"):
-            return head_content[16:]  # Remove "ref: refs/heads/" prefix
-
-        return None  # Detached HEAD
-    except (IOError, OSError):
-        return None
-
-
-def _is_ancestor(repo: Repository, ancestor_sha: str, descendant_sha: str) -> bool:
-    """Check if ancestor_sha is an ancestor of descendant_sha."""
-    current = descendant_sha
-
-    while current:
-        if current == ancestor_sha:
-            return True
-
-        try:
-            commit_type, commit_data = get_object(current)
-            if commit_type != "commit":
-                break
-
-            commit = json.loads(commit_data.decode())
-            current = commit.get("parent")
-        except (FileNotFoundError, json.JSONDecodeError, ValueError):
-            break
-
-    return False
-
-
 def _fast_forward_merge(repo: Repository, target_commit: str, branch_name: str) -> None:
     """Perform a fast-forward merge."""
     # Update current branch to point to target commit
-    current_branch = _get_current_branch(repo)
+    current_branch = get_current_branch_name(repo)
     if current_branch is None:
-        print("Error: Not on a branch (detached HEAD)")
+        print("Error: Not on a branch (detached HEAD)", file=sys.stderr)
         return
     current_branch_path = os.path.join(repo.ugit_dir, "refs", "heads", current_branch)
 
@@ -112,9 +82,7 @@ def _fast_forward_merge(repo: Repository, target_commit: str, branch_name: str) 
         f.write(target_commit)
 
     # Checkout the target commit
-    from .checkout import _checkout_commit
-
-    _checkout_commit(repo, target_commit)
+    checkout_commit(repo, target_commit)
 
     print(f"Fast-forward merge of '{branch_name}' into '{current_branch}'")
     print(f"Updated {current_branch} to {target_commit[:7]}")
@@ -124,21 +92,22 @@ def _create_merge_commit(
     repo: Repository, parent1: str, parent2: str, branch_name: str
 ) -> None:
     """Create a merge commit with two parents."""
-    current_branch = _get_current_branch(repo)
+    current_branch = get_current_branch_name(repo)
     if current_branch is None:
-        print("Error: Not on a branch (detached HEAD)")
+        print("Error: Not on a branch (detached HEAD)", file=sys.stderr)
         return
 
-    # Create merge commit
-    import time
+    config = Config(repo.path)
+    author = config.get_author_string()
 
+    # Create merge commit
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
     commit_data = {
         "tree": _get_commit_tree(repo, parent2),  # Use the merged branch's tree
         "parent": parent1,
         "parent2": parent2,  # Second parent for merge
-        "author": "Merge Author <merge@ugit.com>",  # TODO: Get from config
+        "author": author,
         "timestamp": timestamp,
         "message": f"Merge branch '{branch_name}' into {current_branch}",
     }
@@ -152,9 +121,7 @@ def _create_merge_commit(
         f.write(commit_sha)
 
     # Checkout the merged files
-    from .checkout import _checkout_commit
-
-    _checkout_commit(repo, parent2, update_head=False)
+    checkout_commit(repo, parent2, update_head=False)
 
     print(f"Merge commit created: {commit_sha[:7]}")
 
@@ -167,7 +134,7 @@ def _three_way_merge(
     common_ancestor = _find_common_ancestor(repo, current_commit, merge_commit)
 
     if not common_ancestor:
-        print("No common ancestor found - cannot merge")
+        print("No common ancestor found - cannot merge", file=sys.stderr)
         return
 
     # Get file trees for three-way merge
@@ -176,7 +143,7 @@ def _three_way_merge(
         current_files = _get_commit_files(repo, current_commit)
         merge_files = _get_commit_files(repo, merge_commit)
     except ValueError as e:
-        print(f"Error during merge: {e}")
+        print(f"Error during merge: {e}", file=sys.stderr)
         return
 
     # Perform merge
@@ -207,7 +174,7 @@ def _find_common_ancestor(
     ancestors1 = _get_all_ancestors(repo, commit1)
 
     # Walk through ancestors of commit2 until we find one that's also in ancestors1
-    current = commit2
+    current: Optional[str] = commit2
     while current:
         if current in ancestors1:
             return current
@@ -228,7 +195,7 @@ def _find_common_ancestor(
 def _get_all_ancestors(repo: Repository, commit_sha: str) -> Set[str]:
     """Get all ancestors of a commit."""
     ancestors = set()
-    current = commit_sha
+    current: Optional[str] = commit_sha
 
     while current:
         ancestors.add(current)
@@ -247,38 +214,37 @@ def _get_all_ancestors(repo: Repository, commit_sha: str) -> Set[str]:
 
 
 def _get_commit_files(repo: Repository, commit_sha: str) -> Dict[str, str]:
-    """Get all files from a commit."""
+    """Get all files from a specific commit."""
     try:
-        commit_type, commit_data = get_object(commit_sha)
-        if commit_type != "commit":
-            raise ValueError(f"Object {commit_sha} is not a commit")
-
-        commit = json.loads(commit_data.decode())
+        commit = get_commit_data(commit_sha, repo=repo)
         tree_sha = commit["tree"]
-
-        # For simplicity, assume tree is a dict of path->sha
-        tree_type, tree_data = get_object(tree_sha)
-        if tree_type != "tree":
-            raise ValueError(f"Object {tree_sha} is not a tree")
-
-        tree = json.loads(tree_data.decode())
-        files = {}
-
-        # Tree is a list of [path, sha] pairs
-        for entry in tree:
-            if isinstance(entry, list) and len(entry) == 2:
-                path, sha = entry
-                try:
-                    obj_type, content = get_object(sha)
-                    if obj_type == "blob":
-                        files[path] = content.decode("utf-8", errors="replace")
-                except (FileNotFoundError, UnicodeDecodeError):
-                    files[path] = ""
-
-        return files
-
-    except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        return _get_tree_files(repo, tree_sha)
+    except ValueError as e:
         raise ValueError(f"Invalid commit {commit_sha}: {e}")
+
+
+def _get_tree_files(
+    repo: Repository, tree_sha: str, prefix: str = ""
+) -> Dict[str, str]:
+    """Recursively get all files from a tree object."""
+    files = {}
+    try:
+        entries = get_tree_entries(tree_sha, repo=repo)
+        for mode, path, sha in entries:
+            full_path = os.path.join(prefix, path) if prefix else path
+            if mode.startswith("10"):  # File
+                try:
+                    type_, content = get_object(sha, repo=repo)
+                    if type_ == "blob":
+                        files[full_path] = content.decode("utf-8", errors="replace")
+                except (FileNotFoundError, ValueError, UnicodeDecodeError):
+                    files[full_path] = ""
+            elif mode.startswith("40"):  # Tree
+                subfiles = _get_tree_files(repo, sha, full_path)
+                files.update(subfiles)
+    except ValueError as e:
+        raise ValueError(f"Invalid tree {tree_sha}: {e}")
+    return files
 
 
 def _merge_files(
@@ -354,12 +320,13 @@ def _create_merge_commit_with_tree(
     repo: Repository, parent1: str, parent2: str, branch_name: str, tree_sha: str
 ) -> None:
     """Create merge commit with specific tree."""
-    current_branch = _get_current_branch(repo)
+    current_branch = get_current_branch_name(repo)
     if current_branch is None:
-        print("Error: Not on a branch (detached HEAD)")
+        print("Error: Not on a branch (detached HEAD)", file=sys.stderr)
         return
 
-    import time
+    config = Config(repo.path)
+    author = config.get_author_string()
 
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -367,7 +334,7 @@ def _create_merge_commit_with_tree(
         "tree": tree_sha,
         "parent": parent1,
         "parent2": parent2,
-        "author": "Merge Author <merge@ugit.com>",
+        "author": author,
         "timestamp": timestamp,
         "message": f"Merge branch '{branch_name}' into {current_branch}",
     }

@@ -9,11 +9,17 @@ This module handles comparing files between different states:
 
 import difflib
 import os
+import sys
 from typing import Dict, List, Optional, Set, Tuple
 
 from ..core.objects import get_object
-from ..core.repository import Repository
-from ..utils.helpers import get_ignored_patterns
+from ..core.repository import Index, Repository
+from ..utils.helpers import (
+    get_commit_data,
+    get_ignored_patterns,
+    get_tree_entries,
+    should_ignore_file,
+)
 
 
 def diff(
@@ -105,7 +111,7 @@ def _diff_commits(repo: Repository, commit1: str, commit2: str) -> None:
         files1 = _get_commit_files(repo, commit1)
         files2 = _get_commit_files(repo, commit2)
     except (FileNotFoundError, ValueError) as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", file=sys.stderr)
         return
 
     # Compare files
@@ -126,34 +132,16 @@ def _diff_commits(repo: Repository, commit1: str, commit2: str) -> None:
 
 def _get_staged_files(repo: Repository) -> Dict[str, str]:
     """Get all staged files and their content."""
-    index_path = os.path.join(repo.ugit_dir, "index")
+    index_data = Index(repo).read()
     staged_files: Dict[str, str] = {}
 
-    if not os.path.exists(index_path):
-        return staged_files
-
-    try:
-        with open(index_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-
-                parts = line.split("\t")
-                if len(parts) >= 2:
-                    file_path = parts[1]
-                    sha = parts[0]
-
-                    try:
-                        obj_type, content = get_object(sha)
-                        if obj_type == "blob":
-                            staged_files[file_path] = content.decode(
-                                "utf-8", errors="replace"
-                            )
-                    except (FileNotFoundError, ValueError, UnicodeDecodeError):
-                        staged_files[file_path] = ""
-    except (IOError, OSError):
-        pass
+    for path, (sha, _, _) in index_data.items():
+        try:
+            obj_type, content = get_object(sha)
+            if obj_type == "blob":
+                staged_files[path] = content.decode("utf-8", errors="replace")
+        except (FileNotFoundError, ValueError, UnicodeDecodeError):
+            staged_files[path] = ""
 
     return staged_files
 
@@ -173,7 +161,7 @@ def _get_working_files(repo: Repository) -> Dict[str, str]:
             rel_path = os.path.relpath(file_path, repo.path)
 
             # Skip ignored files
-            if _should_ignore_file(rel_path, ignored_patterns):
+            if should_ignore_file(rel_path, ignored_patterns):
                 continue
 
             try:
@@ -188,67 +176,35 @@ def _get_working_files(repo: Repository) -> Dict[str, str]:
 def _get_commit_files(repo: Repository, commit_sha: str) -> Dict[str, str]:
     """Get all files from a specific commit."""
     try:
-        # Get commit object
-        commit_type, commit_data = get_object(commit_sha)
-        if commit_type != "commit":
-            raise ValueError(f"Object {commit_sha} is not a commit")
-
-        # Parse JSON commit data
-        import json
-
-        commit = json.loads(commit_data.decode("utf-8"))
+        commit = get_commit_data(commit_sha, repo=repo)
         tree_sha = commit["tree"]
-
-        # Get files from tree
-        return _get_tree_files(tree_sha)
-
-    except (
-        FileNotFoundError,
-        ValueError,
-        UnicodeDecodeError,
-        json.JSONDecodeError,
-    ) as e:
+        return _get_tree_files(repo, tree_sha)
+    except ValueError as e:
         raise ValueError(f"Invalid commit {commit_sha}: {e}")
 
 
-def _get_tree_files(tree_sha: str, prefix: str = "") -> Dict[str, str]:
+def _get_tree_files(
+    repo: Repository, tree_sha: str, prefix: str = ""
+) -> Dict[str, str]:
     """Recursively get all files from a tree object."""
+    files = {}
     try:
-        tree_type, tree_data = get_object(tree_sha)
-        if tree_type != "tree":
-            raise ValueError(f"Object {tree_sha} is not a tree")
-
-        import json
-
-        tree = json.loads(tree_data.decode("utf-8"))
-
-        files = {}
-
-        for entry in tree:
-            if isinstance(entry, list) and len(entry) == 2:
-                path, sha = entry
-                full_path = os.path.join(prefix, path) if prefix else path
-
+        entries = get_tree_entries(tree_sha, repo=repo)
+        for mode, path, sha in entries:
+            full_path = os.path.join(prefix, path) if prefix else path
+            if mode.startswith("10"):  # File
                 try:
-                    obj_type, content = get_object(sha)
-                    if obj_type == "blob":
+                    type_, content = get_object(sha, repo=repo)
+                    if type_ == "blob":
                         files[full_path] = content.decode("utf-8", errors="replace")
-                    elif obj_type == "tree":
-                        # Recursively get files from subdirectory
-                        subfiles = _get_tree_files(sha, full_path)
-                        files.update(subfiles)
                 except (FileNotFoundError, ValueError, UnicodeDecodeError):
                     files[full_path] = ""
-
-        return files
-
-    except (
-        FileNotFoundError,
-        ValueError,
-        UnicodeDecodeError,
-        json.JSONDecodeError,
-    ) as e:
+            elif mode.startswith("40"):  # Tree
+                subfiles = _get_tree_files(repo, sha, full_path)
+                files.update(subfiles)
+    except ValueError as e:
         raise ValueError(f"Invalid tree {tree_sha}: {e}")
+    return files
 
 
 def _print_file_diff(
@@ -280,16 +236,3 @@ def _print_file_diff(
                 print(f"\033[31m{line}\033[0m")  # Red
             else:
                 print(line, end="")
-
-
-def _should_ignore_file(file_path: str, ignored_patterns: List[str]) -> bool:
-    """Check if a file should be ignored based on patterns."""
-    import fnmatch
-
-    for pattern in ignored_patterns:
-        if fnmatch.fnmatch(file_path, pattern) or fnmatch.fnmatch(
-            os.path.basename(file_path), pattern
-        ):
-            return True
-
-    return False

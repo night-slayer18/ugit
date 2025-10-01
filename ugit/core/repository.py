@@ -6,7 +6,8 @@ and repository state operations.
 """
 
 import os
-from typing import Dict, Optional
+import sys
+from typing import Dict, Optional, Tuple
 
 
 class Repository:
@@ -42,10 +43,14 @@ class Repository:
                 if os.path.exists(ref_file):
                     with open(ref_file, "r", encoding="utf-8") as f:
                         return f.read().strip()
+                else:
+                    # This case happens on the first commit of a new repository
+                    return None
 
+            # Detached HEAD
             return head_content if head_content else None
         except (IOError, OSError, UnicodeDecodeError) as e:
-            print(f"Error reading HEAD: {e}")
+            print(f"Error reading HEAD: {e}", file=sys.stderr)
             return None
 
     def set_head_ref(self, sha: str, branch: str = "main") -> None:
@@ -74,12 +79,12 @@ class Index:
         self.repo = repo
         self.index_path = os.path.join(repo.ugit_dir, "index")
 
-    def read(self) -> Dict[str, str]:
+    def read(self) -> Dict[str, Tuple[str, float, int]]:
         """
         Read the current index.
 
         Returns:
-            Dictionary mapping file paths to SHA hashes
+            Dictionary mapping file paths to (SHA, mtime, size) tuples.
         """
         index = {}
         if os.path.exists(self.index_path):
@@ -87,63 +92,50 @@ class Index:
                 with open(self.index_path, "r", encoding="utf-8") as f:
                     for line_num, line in enumerate(f, 1):
                         line = line.strip()
-                        if line:
-                            parts = line.split(" ", 1)
-                            if len(parts) != 2:
-                                print(f"Warning: Invalid index line {line_num}: {line}")
-                                continue
-                            sha, path = parts
-                            if len(sha) != 40:
-                                print(f"Warning: Invalid SHA in index line {line_num}")
-                                continue
-                            index[path] = sha
+                        if not line:
+                            continue
+
+                        # New format: sha mtime size path
+                        parts = line.split(" ", 3)
+                        if len(parts) != 4:
+                            print(
+                                f"Invalid index line {line_num}: {line}",
+                                file=sys.stderr,
+                            )
+                            continue
+
+                        sha, mtime_str, size_str, path = parts
+                        if len(sha) != 40:
+                            print(
+                                f"Invalid SHA in index line {line_num}", file=sys.stderr
+                            )
+                            continue
+
+                        try:
+                            index[path] = (sha, float(mtime_str), int(size_str))
+                        except (ValueError, TypeError):
+                            print(
+                                f"Invalid metadata in index line {line_num}",
+                                file=sys.stderr,
+                            )
+                            continue
             except (IOError, OSError, UnicodeDecodeError) as e:
-                print(f"Error reading index: {e}")
+                print(f"Error reading index: {e}", file=sys.stderr)
         return index
 
-    def write(self, index: Dict[str, str]) -> None:
+    def write(self, index: Dict[str, Tuple[str, float, int]]) -> None:
         """
-        Write index to disk.
+        Write index to disk from the new format.
 
         Args:
-            index: Dictionary mapping file paths to SHA hashes
+            index: Dictionary mapping file paths to (SHA, mtime, size) tuples.
         """
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
 
             with open(self.index_path, "w", encoding="utf-8") as f:
-                for path, sha in sorted(index.items()):  # Sort for consistency
-                    f.write(f"{sha} {path}\n")
+                for path, (sha, mtime, size) in sorted(index.items()):
+                    f.write(f"{sha} {mtime} {size} {path}\n")
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to write index: {e}")
-
-    def add_file(self, path: str, sha: str) -> None:
-        """
-        Add a file to the index.
-
-        Args:
-            path: File path
-            sha: SHA hash of the file content
-        """
-        if len(sha) != 40:
-            raise ValueError(f"Invalid SHA length: {len(sha)}")
-
-        index = self.read()
-        # Normalize path separators
-        normalized_path = os.path.normpath(path).replace(os.sep, "/")
-        index[normalized_path] = sha
-        self.write(index)
-
-    def remove_file(self, path: str) -> None:
-        """
-        Remove a file from the index.
-
-        Args:
-            path: File path to remove
-        """
-        index = self.read()
-        normalized_path = os.path.normpath(path).replace(os.sep, "/")
-        if normalized_path in index:
-            del index[normalized_path]
-            self.write(index)

@@ -4,6 +4,7 @@ Create commits from staged changes.
 
 import json
 import os
+import sys
 from datetime import datetime
 from typing import Optional
 
@@ -77,7 +78,7 @@ def _write_tree(repo: Repository) -> Optional[str]:
 
     # Convert index to tree entries (sorted for consistency)
     tree_entries = []
-    for path, sha in sorted(index_data.items()):
+    for path, (sha, _, _) in sorted(index_data.items()):
         tree_entries.append([path, sha])  # Use list for JSON serialization
 
     tree_data = json.dumps(tree_entries, indent=2).encode()
@@ -107,6 +108,6 @@ def _update_current_branch(repo: Repository, commit_sha: str) -> None:
                 f.write(commit_sha)
 
     except (IOError, OSError) as e:
-        print(f"Error updating branch: {e}")
+        sys.stderr.write(f"Error updating branch: {e}\n")
         # Fallback to updating main
         repo.set_head_ref(commit_sha, "main")

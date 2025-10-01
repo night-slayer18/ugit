@@ -2,47 +2,94 @@
 Add files to the staging area.
 """
 
-import fnmatch
 import os
-from typing import List, Union
+import sys
+from typing import Dict, List, Tuple, Union
 
 from ..core.objects import hash_object
 from ..core.repository import Index
-from ..utils.helpers import ensure_repository, get_ignored_patterns, safe_read_file
+from ..utils.helpers import (
+    ensure_repository,
+    get_ignored_patterns,
+    safe_read_file,
+    should_ignore_file,
+)
 
 
 def add(paths: Union[str, List[str]]) -> None:
     """
-    Add file(s) to the staging area.
-
-    Args:
-        paths: File path or list of paths to add
+    Add file(s) to the staging area. This function reads the index once,
+    updates it in memory, and writes it back once at the end.
     """
     repo = ensure_repository()
     index = Index(repo)
+    index_data = index.read()
     ignored_patterns = get_ignored_patterns(repo.path)
 
-    # Handle both single path and list of paths
     if isinstance(paths, str):
         paths = [paths]
 
+    # Track if any changes are made to the index and collect messages for user
+    changes_made = False
+    messages: List[str] = []
+
     for file_path in paths:
-        _add_single_path(file_path, index, ignored_patterns)
+        if _add_single_path(file_path, index_data, ignored_patterns, messages):
+            changes_made = True
+
+    if changes_made:
+        index.write(index_data)
+        # Print messages to stdout for user visibility
+        for m in messages:
+            print(m)
 
 
-def _add_single_path(path: str, index: Index, ignored_patterns: List[str]) -> None:
-    """Add a single file or directory to the index."""
+def _add_single_path(
+    path: str,
+    index_data: Dict[str, Tuple[str, float, int]],
+    ignored_patterns: List[str],
+    messages: List[str],
+) -> bool:
+    """
+    Add a single file or directory to the in-memory index, handling deletions.
+    Returns True if the index was modified.
+    """
+    change_detected = False
     if not os.path.exists(path):
-        print(f"Error: '{path}' does not exist")
-        return
+        # Path doesn't exist, check if it was a tracked file (a deletion)
+        try:
+            rel_path = os.path.relpath(path)
+            if rel_path in index_data:
+                del index_data[rel_path]
+                change_detected = True
+                messages.append(f"deleted: {rel_path}")
+            else:
+                print(
+                    f"Error: '{path}' does not exist and is not tracked.",
+                    file=sys.stderr,
+                )
+        except ValueError:
+            print(f"Error: '{path}' does not exist.", file=sys.stderr)
+        return change_detected
 
     if os.path.isdir(path):
-        # Recursively add all files in directory
-        added_count = 0
-        ignored_count = 0
+        # Recursively add files and handle deletions
+        all_tracked_files = set(index_data.keys())
+        normalized_path = os.path.normpath(path)
+
+        if normalized_path == ".":
+            tracked_files_in_dir = all_tracked_files
+        else:
+            tracked_files_in_dir = {
+                p
+                for p in all_tracked_files
+                if os.path.normpath(p).startswith(normalized_path + os.sep)
+                or os.path.normpath(p) == normalized_path
+            }
+
+        existing_files_in_dir = set()
 
         for root, dirs, files in os.walk(path):
-            # Skip .ugit directory
             if ".ugit" in dirs:
                 dirs.remove(".ugit")
 
@@ -50,62 +97,60 @@ def _add_single_path(path: str, index: Index, ignored_patterns: List[str]) -> No
                 file_path = os.path.join(root, file)
                 rel_path = os.path.relpath(file_path)
 
-                if _should_ignore_file(rel_path, ignored_patterns):
-                    ignored_count += 1
+                if should_ignore_file(rel_path, ignored_patterns):
                     continue
 
-                if _add_single_file(file_path, index):
-                    added_count += 1
+                existing_files_in_dir.add(rel_path)
+                if _add_single_file(file_path, index_data, messages):
+                    change_detected = True
 
-        if added_count > 0:
-            print(f"Added {added_count} files from directory '{path}'")
-        if ignored_count > 0:
-            print(f"Ignored {ignored_count} files (see .ugitignore)")
-        if added_count == 0 and ignored_count == 0:
-            print(f"No files added from directory '{path}'")
-    else:
+        # Find and stage deletions
+        deleted_files = tracked_files_in_dir - existing_files_in_dir
+        for file_to_delete in deleted_files:
+            del index_data[file_to_delete]
+            change_detected = True
+            messages.append(f"deleted: {file_to_delete}")
+
+    else:  # It's a file
         rel_path = os.path.relpath(path)
-        if _should_ignore_file(rel_path, ignored_patterns):
-            print(f"Ignored '{path}' (see .ugitignore)")
-        else:
-            _add_single_file(path, index)
+        if should_ignore_file(rel_path, ignored_patterns):
+            pass
+        elif _add_single_file(path, index_data, messages):
+            change_detected = True
+
+    return change_detected
 
 
-def _add_single_file(path: str, index: Index) -> bool:
+def _add_single_file(
+    path: str, index_data: Dict[str, Tuple[str, float, int]], messages: List[str]
+) -> bool:
     """
-    Add a single file to the index.
-
-    Returns:
-        True if file was successfully added, False otherwise
+    Add a single file to the in-memory index if it has changed.
+    Returns True if the index was updated.
     """
     try:
+        stat = os.stat(path)
         data = safe_read_file(path)
-        sha = hash_object(data, "blob")
-        index.add_file(path, sha)
-        print(f"Staged {path} ({sha[:7]})")
+        new_sha = hash_object(data, "blob")
+
+        rel_path = os.path.relpath(path)
+        normalized_path = os.path.normpath(rel_path).replace(os.sep, "/")
+
+        current_entry = index_data.get(normalized_path)
+        if current_entry and current_entry[0] == new_sha:
+            return False  # SHA is the same, no need to update
+
+        index_data[normalized_path] = (new_sha, stat.st_mtime, stat.st_size)
+        # Determine whether this was an add or update
+        if current_entry:
+            messages.append(f"updated: {normalized_path}")
+        else:
+            messages.append(f"added: {normalized_path}")
         return True
 
     except (FileNotFoundError, RuntimeError) as e:
-        print(f"Error adding file '{path}': {e}")
+        print(f"Error adding file '{path}': {e}", file=sys.stderr)
         return False
     except Exception as e:
-        print(f"Unexpected error adding file '{path}': {e}")
+        print(f"Unexpected error adding file '{path}': {e}", file=sys.stderr)
         return False
-
-
-def _should_ignore_file(file_path: str, ignored_patterns: List[str]) -> bool:
-    """Check if a file should be ignored based on patterns."""
-    for pattern in ignored_patterns:
-        # Check full path and just filename
-        if fnmatch.fnmatch(file_path, pattern) or fnmatch.fnmatch(
-            os.path.basename(file_path), pattern
-        ):
-            return True
-
-        # Check if any parent directory matches the pattern
-        path_parts = file_path.split(os.sep)
-        for part in path_parts[:-1]:  # Exclude the filename itself
-            if fnmatch.fnmatch(part, pattern):
-                return True
-
-    return False

@@ -4,20 +4,15 @@ FastAPI web server for ugit repository viewer.
 
 import json
 import os
-from datetime import datetime
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import (
-    HTMLResponse,
-    JSONResponse,
-)
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.responses import FileResponse, Response
 
-from ugit.commands import diff, log
 from ugit.core.objects import get_object
 from ugit.core.repository import Repository
 
@@ -51,9 +46,9 @@ class UgitWebServer:
         async def home(request: Request) -> HTMLResponse:
             """Main repository view"""
             return self.templates.TemplateResponse(
-                "index.html",
-                {
-                    "request": request,
+                request=request,
+                name="index.html",
+                context={
                     "repo_name": os.path.basename(self.repo_path),
                     "repo_path": self.repo_path,
                 },
@@ -63,76 +58,49 @@ class UgitWebServer:
         async def list_files(path: str = "", commit: str = "HEAD") -> Any:
             """List files and directories from the committed tree (repository view)"""
             try:
-                print(f"DEBUG: Requesting files for path='{path}', commit='{commit}'")
-
                 # Get the current commit SHA
                 if commit == "HEAD":
                     try:
                         head_file = os.path.join(self.repo_path, ".ugit", "HEAD")
-                        print(f"DEBUG: Reading HEAD file: {head_file}")
-
                         with open(head_file, "r") as f:
                             ref = f.read().strip()
-                        print(f"DEBUG: HEAD content: {ref}")
 
                         if ref.startswith("ref: "):
                             ref_path = ref[5:]
                             ref_file = os.path.join(self.repo_path, ".ugit", ref_path)
-                            print(f"DEBUG: Reading ref file: {ref_file}")
                             if os.path.exists(ref_file):
                                 with open(ref_file, "r") as f:
                                     commit_sha = f.read().strip()
-                                print(f"DEBUG: Found commit SHA: {commit_sha}")
                             else:
-                                print(
-                                    "DEBUG: No commits found - ref file doesn't exist"
-                                )
                                 return {"files": [], "commit": None, "path": path}
                         else:
                             commit_sha = ref
-                            print(f"DEBUG: Direct SHA reference: {commit_sha}")
-                    except FileNotFoundError as e:
-                        print(f"DEBUG: FileNotFoundError: {e}")
+                    except FileNotFoundError:
                         return {"files": [], "commit": None, "path": path}
                 else:
                     commit_sha = commit
-                    print(f"DEBUG: Using provided commit: {commit_sha}")
 
                 # Get the commit object
                 try:
-                    print(f"DEBUG: Getting commit object for SHA: {commit_sha}")
                     obj_type, commit_data = get_object(commit_sha)
-                    print(f"DEBUG: Object type: {obj_type}")
                     if obj_type != "commit":
-                        print(
-                            f"DEBUG: Invalid object type, expected 'commit', got '{obj_type}'"
-                        )
                         return {"files": [], "commit": None, "path": path}
 
                     commit_obj = json.loads(commit_data.decode("utf-8"))
                     tree_sha = commit_obj["tree"]
-                    print(f"DEBUG: Tree SHA: {tree_sha}")
                 except Exception as e:
-                    print(f"DEBUG: Error reading commit object: {e}")
+                    sys.stderr.write(f"Error reading commit object: {e}\n")
                     return {"files": [], "commit": None, "path": path}
 
                 # Get the tree contents (ugit uses flat structure with full paths)
                 try:
-                    print(f"DEBUG: Reading tree contents from SHA: {tree_sha}")
                     obj_type, tree_data = get_object(tree_sha)
                     if obj_type != "tree":
-                        print(f"DEBUG: Object is not a tree: {obj_type}")
                         return {"files": [], "commit": None, "path": path}
 
                     tree_obj = json.loads(tree_data.decode("utf-8"))
-                    print(
-                        f"DEBUG: Tree object loaded successfully, entries: {len(tree_obj)}"
-                    )
-                    print(
-                        f"DEBUG: Sample entries: {tree_obj[:3] if tree_obj else 'None'}"
-                    )
                 except Exception as e:
-                    print(f"DEBUG: Error reading tree: {e}")
+                    sys.stderr.write(f"Error reading tree: {e}\n")
                     return {"files": [], "commit": None, "path": path}
 
                 # ugit stores all files with full paths in a flat tree structure
@@ -142,19 +110,12 @@ class UgitWebServer:
 
                 # Normalize the requested path
                 current_path = path.rstrip("/") if path else ""
-                current_depth = len(current_path.split("/")) if current_path else 0
-
-                print(f"DEBUG: Current path: '{current_path}', depth: {current_depth}")
 
                 # Process all entries in the flat tree
                 for entry in tree_obj:
                     if len(entry) >= 2:
-                        full_file_path = entry[
-                            0
-                        ]  # This is the full path like 'src/utils.py'
+                        full_file_path = entry[0]
                         file_sha = entry[1]
-
-                        print(f"DEBUG: Processing entry: {full_file_path}")
 
                         # Check if this file belongs to the current path
                         if current_path:
@@ -164,8 +125,6 @@ class UgitWebServer:
                             relative_path = full_file_path[len(current_path) + 1 :]
                         else:
                             relative_path = full_file_path
-
-                        print(f"DEBUG: Relative path: '{relative_path}'")
 
                         # Split the path to see if it's directly in current directory
                         path_parts = relative_path.split("/")
@@ -178,7 +137,7 @@ class UgitWebServer:
                             try:
                                 obj_type, _ = get_object(file_sha)
                                 file_type = obj_type
-                            except:
+                            except Exception:
                                 file_type = "blob"
 
                             file_info = {
@@ -211,20 +170,10 @@ class UgitWebServer:
                                         "timestamp"
                                     ]
                                     file_info["commit_sha"] = last_commit_info["sha"]
-                                    print(
-                                        f"DEBUG: Got commit info for {full_file_path}: {last_commit_info['message']}"
-                                    )
-                                else:
-                                    print(
-                                        f"DEBUG: No commit info found for {full_file_path}"
-                                    )
                             except Exception as e:
-                                print(
-                                    f"DEBUG: Error getting commit info for {full_file_path}: {e}"
+                                sys.stderr.write(
+                                    f"Error getting commit info for {full_file_path}: {e}\n"
                                 )
-                                import traceback
-
-                                traceback.print_exc()
 
                             files.append(file_info)
                         else:
@@ -243,10 +192,15 @@ class UgitWebServer:
 
                                 # Find the most recent commit that modified any file in this directory
                                 try:
+                                    full_subdir_path = (
+                                        f"{current_path}/{subdir_name}"
+                                        if current_path
+                                        else subdir_name
+                                    )
                                     # Look for any file that starts with subdir_name/ in the commit history
                                     dir_commit_info = (
                                         self._get_last_commit_for_directory(
-                                            subdir_name, commit_sha
+                                            full_subdir_path, commit_sha
                                         )
                                     )
                                     if dir_commit_info:
@@ -259,9 +213,6 @@ class UgitWebServer:
                                         subdir_info["commit_sha"] = dir_commit_info[
                                             "sha"
                                         ]
-                                        print(
-                                            f"DEBUG: Got directory commit info for {subdir_name}: {dir_commit_info['message']}"
-                                        )
                                     else:
                                         # Fallback to current commit
                                         subdir_info["commit_message"] = commit_obj.get(
@@ -271,12 +222,9 @@ class UgitWebServer:
                                             "timestamp", 0
                                         )
                                         subdir_info["commit_sha"] = commit_sha
-                                        print(
-                                            f"DEBUG: Using fallback commit info for directory {subdir_name}"
-                                        )
                                 except Exception as e:
-                                    print(
-                                        f"DEBUG: Error getting directory commit info for {subdir_name}: {e}"
+                                    sys.stderr.write(
+                                        f"Error getting directory commit info for {subdir_name}: {e}\n"
                                     )
                                     # Fallback to current commit
                                     subdir_info["commit_message"] = commit_obj.get(
@@ -291,8 +239,6 @@ class UgitWebServer:
 
                 # Sort: directories first, then files
                 files.sort(key=lambda x: (x["type"] != "tree", x["name"].lower()))
-
-                print(f"DEBUG: Final files list: {[f['name'] for f in files]}")
 
                 # Get commit info for latest commit display
                 commit_info = {
@@ -313,10 +259,6 @@ class UgitWebServer:
         async def get_file_content(path: str, commit: str = "HEAD") -> Any:
             """Get content of a specific file from the committed tree"""
             try:
-                print(
-                    f"DEBUG: Requesting file content for path='{path}', commit='{commit}'"
-                )
-
                 # Get the current commit SHA
                 if commit == "HEAD":
                     try:
@@ -352,7 +294,6 @@ class UgitWebServer:
 
                     commit_obj = json.loads(commit_data.decode("utf-8"))
                     tree_sha = commit_obj["tree"]
-                    print(f"DEBUG: Tree SHA: {tree_sha}")
                 except Exception:
                     raise HTTPException(status_code=404, detail="Invalid commit")
 
@@ -363,10 +304,6 @@ class UgitWebServer:
                         raise HTTPException(status_code=404, detail="Invalid tree")
 
                     tree_obj = json.loads(tree_data.decode("utf-8"))
-                    print(f"DEBUG: Tree loaded, looking for file: {path}")
-                    print(
-                        f"DEBUG: Available files: {[entry[0] for entry in tree_obj if len(entry) >= 2]}"
-                    )
                 except Exception:
                     raise HTTPException(status_code=404, detail="Invalid tree")
 
@@ -375,25 +312,20 @@ class UgitWebServer:
                 for entry in tree_obj:
                     if len(entry) >= 2 and entry[0] == path:
                         file_sha = entry[1]
-                        print(f"DEBUG: Found file with SHA: {file_sha}")
                         break
 
                 if not file_sha:
-                    print(f"DEBUG: File not found in tree")
                     raise HTTPException(status_code=404, detail="File not found")
 
                 # Get the file content
                 try:
                     obj_type, file_data = get_object(file_sha)
                     if obj_type != "blob":
-                        print(f"DEBUG: Object is not a blob: {obj_type}")
                         raise HTTPException(status_code=404, detail="Not a file")
-                    print(
-                        f"DEBUG: Successfully loaded file content, size: {len(file_data)}"
-                    )
                 except Exception as e:
-                    print(f"DEBUG: Error loading file content: {e}")
-                    raise HTTPException(status_code=404, detail="Error reading file")
+                    raise HTTPException(
+                        status_code=404, detail=f"Error reading file: {e}"
+                    )
 
                 # Check if file is binary
                 is_binary = b"\x00" in file_data[:1024]
@@ -472,7 +404,7 @@ class UgitWebServer:
 
                 # Traverse commit history
                 visited = set()
-                to_visit = [current_sha]
+                to_visit: List[Optional[str]] = [current_sha]
 
                 while to_visit and commit_count < offset + limit:
                     sha = to_visit.pop(0)
@@ -537,7 +469,7 @@ class UgitWebServer:
                                 to_visit.append(parent)
 
                     except Exception as e:
-                        print(f"Error processing commit {sha}: {e}")
+                        sys.stderr.write(f"Error processing commit {sha}: {e}\n")
                         continue
 
                 return {
@@ -574,33 +506,67 @@ class UgitWebServer:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 
+        @self.app.get("/api/latest-commit")
+        async def get_latest_commit() -> Any:
+            """Return basic info about the latest commit (used by frontend)."""
+            try:
+                # Read HEAD
+                try:
+                    with open(os.path.join(self.repo_path, ".ugit", "HEAD"), "r") as f:
+                        ref = f.read().strip()
+
+                    if ref.startswith("ref: "):
+                        ref_path = ref[5:]
+                        ref_file = os.path.join(self.repo_path, ".ugit", ref_path)
+                        if os.path.exists(ref_file):
+                            with open(ref_file, "r") as f:
+                                commit_sha = f.read().strip()
+                        else:
+                            return {"commit": None}
+                    else:
+                        commit_sha = ref
+                except FileNotFoundError:
+                    return {"commit": None}
+
+                # Read commit object
+                try:
+                    obj_type, commit_data = get_object(commit_sha)
+                    if obj_type != "commit":
+                        return {"commit": None}
+
+                    commit_obj = json.loads(commit_data.decode("utf-8"))
+                except Exception:
+                    return {"commit": None}
+
+                commit_info = {
+                    "sha": commit_sha,
+                    "message": commit_obj.get("message", ""),
+                    "author": commit_obj.get("author", ""),
+                    "timestamp": commit_obj.get("timestamp", 0),
+                }
+
+                return {"commit": commit_info}
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
     def _get_last_commit_for_directory(
         self, dir_path: str, current_commit_sha: str
     ) -> Optional[Dict[str, Any]]:
         """Find the last commit that modified any file in a specific directory"""
         try:
-            print(
-                f"DEBUG: Looking for last commit for directory: '{dir_path}' starting from {current_commit_sha}"
-            )
-
             # Start from current commit and walk backwards
-            commit_sha = current_commit_sha
+            commit_sha: Optional[str] = current_commit_sha
             visited = set()
             commit_count = 0
             previous_dir_file_shas: Dict[str, str] = {}
             last_commit_with_change = None
 
-            while (
-                commit_sha and commit_sha not in visited and commit_count < 20
-            ):  # Limit to prevent infinite loops
+            while commit_sha and commit_sha not in visited:
                 visited.add(commit_sha)
                 commit_count += 1
 
                 try:
-                    print(
-                        f"DEBUG: Checking commit {commit_sha} for directory {dir_path} (#{commit_count})"
-                    )
-
                     # Get commit object
                     obj_type, commit_data = get_object(commit_sha)
                     if obj_type != "commit":
@@ -625,16 +591,10 @@ class UgitWebServer:
                         if len(entry) >= 2 and entry[0].startswith(dir_path + "/"):
                             dir_has_files = True
                             current_dir_file_shas[entry[0]] = entry[1]
-                            print(
-                                f"DEBUG: Found file in directory '{dir_path}': {entry[0]} ({entry[1][:7]})"
-                            )
 
                     if not dir_has_files:
                         # Directory doesn't exist in this commit
                         if last_commit_with_change:
-                            print(
-                                f"DEBUG: Directory '{dir_path}' not found, returning last change: {last_commit_with_change['sha']}"
-                            )
                             return last_commit_with_change
                         break
 
@@ -648,9 +608,6 @@ class UgitWebServer:
                             "timestamp": commit_obj.get("timestamp", 0),
                         }
                         previous_dir_file_shas = current_dir_file_shas.copy()
-                        print(
-                            f"DEBUG: First occurrence of directory '{dir_path}', marking commit {commit_sha}"
-                        )
 
                     else:
                         # Check if any file in the directory has changed
@@ -663,9 +620,6 @@ class UgitWebServer:
                                 or previous_dir_file_shas[file_path] != file_sha
                             ):
                                 files_changed = True
-                                print(
-                                    f"DEBUG: File changed in directory '{dir_path}': {file_path}"
-                                )
                                 break
 
                         # Check for deleted files
@@ -673,19 +627,13 @@ class UgitWebServer:
                             for file_path in previous_dir_file_shas:
                                 if file_path not in current_dir_file_shas:
                                     files_changed = True
-                                    print(
-                                        f"DEBUG: File deleted from directory '{dir_path}': {file_path}"
-                                    )
                                     break
 
                         if files_changed:
                             # Files in directory changed! The previous commit was where it was last modified
-                            print(f"DEBUG: Directory '{dir_path}' content changed!")
                             if last_commit_with_change:
                                 return last_commit_with_change
                             break
-                        else:
-                            print(f"DEBUG: Directory '{dir_path}' content unchanged")
 
                     # Update for next iteration
                     previous_dir_file_shas = current_dir_file_shas.copy()
@@ -698,29 +646,26 @@ class UgitWebServer:
 
                     # Move to parent commit
                     parent = commit_obj.get("parent")
-                    commit_sha = parent
+                    if parent and len(parent) == 40:
+                        commit_sha = parent
+                    else:
+                        commit_sha = None
 
                 except Exception as e:
-                    print(
-                        f"DEBUG: Error processing commit {commit_sha} for directory {dir_path}: {e}"
+                    sys.stderr.write(
+                        f"Error processing commit {commit_sha} for directory {dir_path}: {e}\n"
                     )
                     break
 
             # If we've exhausted all commits, return the last commit where we found the directory
             if last_commit_with_change:
-                print(
-                    f"DEBUG: Reached end of commit history, returning {last_commit_with_change['sha']} for directory '{dir_path}'"
-                )
                 return last_commit_with_change
 
-            print(
-                f"DEBUG: No commit found for directory '{dir_path}' after checking {commit_count} commits"
-            )
             return None
 
         except Exception as e:
-            print(
-                f"DEBUG: Error in _get_last_commit_for_directory for '{dir_path}': {e}"
+            sys.stderr.write(
+                f"Error in _get_last_commit_for_directory for '{dir_path}': {e}\n"
             )
             return None
 
@@ -729,41 +674,30 @@ class UgitWebServer:
     ) -> Optional[Dict[str, Any]]:
         """Find the last commit that modified a specific file (not just contained it)"""
         try:
-            print(
-                f"DEBUG: Looking for last commit that MODIFIED file: '{file_path}' starting from {current_commit_sha}"
-            )
-
             # Start from current commit and walk backwards
-            commit_sha = current_commit_sha
+            commit_sha: Optional[str] = current_commit_sha
             visited = set()
             commit_count = 0
             previous_file_sha = None
             last_commit_with_change = None
 
-            while (
-                commit_sha and commit_sha not in visited and commit_count < 20
-            ):  # Limit to prevent infinite loops
+            while commit_sha and commit_sha not in visited:
                 visited.add(commit_sha)
                 commit_count += 1
 
                 try:
-                    print(f"DEBUG: Checking commit {commit_sha} (#{commit_count})")
-
                     # Get commit object
                     obj_type, commit_data = get_object(commit_sha)
                     if obj_type != "commit":
-                        print(f"DEBUG: Object {commit_sha} is not a commit: {obj_type}")
                         break
 
                     commit_obj = json.loads(commit_data.decode("utf-8"))
                     commit_message = commit_obj.get("message", "No message")
-                    print(f"DEBUG: Commit message: {commit_message}")
 
                     # Get the tree for this commit
                     tree_sha = commit_obj["tree"]
                     obj_type, tree_data = get_object(tree_sha)
                     if obj_type != "tree":
-                        print(f"DEBUG: Tree {tree_sha} is not a tree: {obj_type}")
                         break
 
                     tree_obj = json.loads(tree_data.decode("utf-8"))
@@ -776,20 +710,11 @@ class UgitWebServer:
                         if len(entry) >= 2 and entry[0] == file_path:
                             file_exists_in_commit = True
                             current_file_sha = entry[1]
-                            print(
-                                f"DEBUG: Found file '{file_path}' in commit {commit_sha} with SHA {current_file_sha}"
-                            )
                             break
 
                     if not file_exists_in_commit:
-                        print(
-                            f"DEBUG: File '{file_path}' not found in commit {commit_sha}"
-                        )
                         # File doesn't exist in this commit, so the previous commit where we found it was where it was last modified
                         if last_commit_with_change:
-                            print(
-                                f"DEBUG: File was added/modified in commit {last_commit_with_change['sha']}"
-                            )
                             return last_commit_with_change
                         break
 
@@ -803,26 +728,13 @@ class UgitWebServer:
                             "timestamp": commit_obj.get("timestamp", 0),
                         }
                         previous_file_sha = current_file_sha
-                        print(
-                            f"DEBUG: First occurrence of file, marking commit {commit_sha}"
-                        )
 
                     elif previous_file_sha != current_file_sha:
                         # File content has changed! The previous commit was where it was last modified
-                        print(
-                            f"DEBUG: File content changed! Previous SHA: {previous_file_sha}, Current SHA: {current_file_sha}"
-                        )
-                        print(
-                            f"DEBUG: File was last modified in the previous commit we checked"
-                        )
                         # Return the previously stored commit (the one where we last saw the file)
                         if last_commit_with_change:
                             return last_commit_with_change
                         break
-                    else:
-                        print(
-                            f"DEBUG: File content unchanged (SHA: {current_file_sha})"
-                        )
 
                     # Update for next iteration
                     previous_file_sha = current_file_sha
@@ -835,14 +747,13 @@ class UgitWebServer:
 
                     # Move to parent commit
                     parent = commit_obj.get("parent")
-                    if parent:
-                        print(f"DEBUG: Moving to parent commit: {parent}")
+                    if parent and len(parent) == 40:
+                        commit_sha = parent
                     else:
-                        print(f"DEBUG: No parent commit found, this is the root")
-                    commit_sha = parent
+                        commit_sha = None
 
                 except Exception as e:
-                    print(f"DEBUG: Error processing commit {commit_sha}: {e}")
+                    sys.stderr.write(f"Error processing commit {commit_sha}: {e}\n")
                     import traceback
 
                     traceback.print_exc()
@@ -850,18 +761,14 @@ class UgitWebServer:
 
             # If we've exhausted all commits, return the last commit where we found the file
             if last_commit_with_change:
-                print(
-                    f"DEBUG: Reached end of commit history, returning {last_commit_with_change['sha']}"
-                )
                 return last_commit_with_change
 
-            print(
-                f"DEBUG: No commit found for file '{file_path}' after checking {commit_count} commits"
-            )
             return None
 
         except Exception as e:
-            print(f"DEBUG: Error in _get_last_commit_for_file for '{file_path}': {e}")
+            sys.stderr.write(
+                f"Error in _get_last_commit_for_file for '{file_path}': {e}\n"
+            )
             import traceback
 
             traceback.print_exc()

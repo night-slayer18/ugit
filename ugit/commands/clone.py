@@ -6,10 +6,14 @@ This module handles cloning remote ugit repositories into local directories.
 
 import os
 import shutil
+import sys
 from typing import Optional
 
+from ..core.checkout import checkout_commit
+from ..core.objects import get_object
 from ..core.repository import Repository
 from ..utils.config import Config
+from ..utils.helpers import is_local_path
 from .remote import add_remote
 
 
@@ -27,23 +31,21 @@ def clone(url: str, directory: Optional[str] = None) -> None:
 
     # Check if directory already exists
     if os.path.exists(directory):
-        print(
+        raise RuntimeError(
             f"fatal: destination path '{directory}' already exists and is not an empty directory"
         )
-        return
 
     # Check if source repository exists and is valid
     if not _is_valid_source(url):
-        print(
+        raise RuntimeError(
             f"fatal: repository '{url}' does not exist or is not a valid ugit repository"
         )
-        return
 
     # Store current directory
     original_cwd = os.getcwd()
 
     # Convert relative URL to absolute path before changing directory
-    if _is_local_path(url) and not os.path.isabs(url):
+    if is_local_path(url) and not os.path.isabs(url):
         url = os.path.abspath(url)
 
     try:
@@ -61,14 +63,13 @@ def clone(url: str, directory: Optional[str] = None) -> None:
         os.makedirs(os.path.join(repo.ugit_dir, "refs", "remotes"))
 
         # Copy objects from source repository
-        if _is_local_path(url):
+        if is_local_path(url):
             _copy_local_repository(url, repo)
         else:
-            print(f"fatal: remote protocols not yet supported: {url}")
             # Clean up on failure
             os.chdir(original_cwd)
             shutil.rmtree(directory)
-            return
+            raise RuntimeError(f"fatal: remote protocols not yet supported: {url}")
 
         # Add origin remote
         add_remote("origin", url)
@@ -86,8 +87,10 @@ def clone(url: str, directory: Optional[str] = None) -> None:
             try:
                 shutil.rmtree(directory)
             except (OSError, PermissionError) as cleanup_error:
-                print(f"warning: could not remove {directory}: {cleanup_error}")
-        print(f"fatal: failed to clone repository: {e}")
+                sys.stderr.write(
+                    f"warning: could not remove {directory}: {cleanup_error}\n"
+                )
+        raise RuntimeError(f"fatal: failed to clone repository: {e}")
     finally:
         # Always return to original directory
         os.chdir(original_cwd)
@@ -128,7 +131,7 @@ def _is_valid_source(url: str) -> bool:
     Returns:
         True if valid ugit repository
     """
-    if _is_local_path(url):
+    if is_local_path(url):
         # Check if it's a ugit repository
         ugit_dir = os.path.join(url, ".ugit")
         return os.path.exists(ugit_dir) and os.path.isdir(ugit_dir)
@@ -136,28 +139,6 @@ def _is_valid_source(url: str) -> bool:
         # For remote URLs, we'd need to implement HTTP/SSH checking
         # For now, assume they're valid if they follow URL patterns
         return url.startswith(("http://", "https://", "git://", "ssh://")) or "@" in url
-
-
-def _is_local_path(url: str) -> bool:
-    """
-    Check if URL is a local filesystem path.
-
-    Args:
-        url: URL to check
-
-    Returns:
-        True if local path
-    """
-    return (
-        os.path.isabs(url)
-        or url.startswith("./")
-        or url.startswith("../")
-        or os.path.exists(url)  # Check if it's a relative path that exists
-        or (
-            not url.startswith(("http://", "https://", "git://", "ssh://"))
-            and "@" not in url
-        )
-    )
 
 
 def _copy_local_repository(source_url: str, dest_repo: Repository) -> None:
@@ -216,7 +197,7 @@ def _setup_initial_checkout(repo: Repository, source_url: str) -> None:
         source_url: Source repository URL
     """
     # Read HEAD from source to determine default branch
-    if _is_local_path(source_url):
+    if is_local_path(source_url):
         source_head_path = os.path.join(source_url, ".ugit", "HEAD")
         default_branch = "main"  # fallback
 
@@ -253,128 +234,10 @@ def _setup_initial_checkout(repo: Repository, source_url: str) -> None:
                     f.write(f"ref: refs/heads/{default_branch}")
 
                 # Perform checkout (simplified - just restore working directory)
-                _checkout_commit(repo, commit_sha)
+                checkout_commit(repo, commit_sha, update_head=False)
 
             except (IOError, OSError) as e:
-                print(f"Warning: failed to checkout {default_branch}: {e}")
-
-
-def _checkout_commit(repo: Repository, commit_sha: str) -> None:
-    """
-    Checkout files from a commit to working directory.
-
-    Args:
-        repo: Repository instance
-        commit_sha: Commit SHA to checkout
-    """
-    import json
-
-    from ..core.objects import get_object
-
-    try:
-        commit_type, commit_content = get_object(commit_sha)
-        if commit_type != "commit":
-            return
-
-        # Parse commit JSON to get tree SHA
-        try:
-            commit_data = json.loads(commit_content.decode("utf-8"))
-            tree_sha = commit_data.get("tree")
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            # Fallback to Git-style parsing
-            lines = commit_content.decode("utf-8").split("\n")
-            tree_sha = None
-            for line in lines:
-                if line.startswith("tree "):
-                    tree_sha = line[5:]
-                    break
-
-        if tree_sha:
-            _checkout_tree(repo, tree_sha, ".")
-
-    except Exception as e:
-        print(f"Warning: failed to checkout working directory: {e}")
-
-
-def _checkout_tree(repo: Repository, tree_sha: str, path: str) -> None:
-    """
-    Recursively checkout a tree object.
-
-    Args:
-        repo: Repository instance
-        tree_sha: Tree SHA to checkout
-        path: Path to checkout to
-    """
-    import json
-
-    from ..core.objects import get_object
-
-    try:
-        tree_type, tree_content = get_object(tree_sha)
-        if tree_type != "tree":
-            print(f"Error: {tree_sha} is not a tree, it's a {tree_type}")
-            return
-
-        # Parse tree entries - our trees are JSON format
-        try:
-            tree_entries = json.loads(tree_content.decode("utf-8"))
-            entries = []
-
-            for entry in tree_entries:
-                if len(entry) >= 2:
-                    name = entry[0]
-                    sha = entry[1]
-                    # Assume regular file mode for now
-                    entries.append(("100644", name, sha))
-
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            # Fallback to Git-style binary parsing
-            entries = []
-            content = tree_content
-
-            while content:
-                # Find null terminator for mode/name
-                null_idx = content.find(b"\x00")
-                if null_idx == -1:
-                    break
-
-                mode_name = content[:null_idx].decode("utf-8")
-                sha_bytes = content[null_idx + 1 : null_idx + 21]
-
-                if len(sha_bytes) < 20:
-                    break
-
-                sha = sha_bytes.hex()
-                content = content[null_idx + 21 :]
-
-                # Parse mode and name
-                parts = mode_name.split(" ", 1)
-                if len(parts) == 2:
-                    mode, name = parts
-                    entries.append((mode, name, sha))
-
-        # Process each entry
-        for mode, name, sha in entries:
-            entry_path = os.path.join(path, name)
-
-            if mode.startswith("10"):  # Regular file
-                # Get file content and write it
-                try:
-                    file_type, file_content = get_object(sha)
-                    if file_type == "blob":
-                        # Only create directories if needed
-                        dir_path = os.path.dirname(entry_path)
-                        if dir_path and dir_path != ".":
-                            os.makedirs(dir_path, exist_ok=True)
-                        with open(entry_path, "wb") as f:
-                            f.write(file_content)
-                except (OSError, IOError, PermissionError) as e:
-                    # Skip files that can't be written (e.g., permission issues)
-                    continue
-
-            elif mode.startswith("40"):  # Directory
-                os.makedirs(entry_path, exist_ok=True)
-                _checkout_tree(repo, sha, entry_path)
-
-    except Exception as e:
-        print(f"Warning: failed to checkout tree {tree_sha}: {e}")
+                print(
+                    f"Warning: failed to checkout {default_branch}: {e}",
+                    file=sys.stderr,
+                )

@@ -8,10 +8,18 @@ hashing, storing, and retrieving objects (blobs, trees, commits).
 import hashlib
 import os
 import zlib
-from typing import Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
+
+if TYPE_CHECKING:
+    from .repository import Repository
 
 
-def hash_object(data: bytes, type_: str = "blob", write: bool = True) -> str:
+def hash_object(
+    data: bytes,
+    type_: str = "blob",
+    write: bool = True,
+    repo: Optional["Repository"] = None,
+) -> str:
     """
     Compute SHA-1 hash of data and optionally store it.
 
@@ -19,6 +27,7 @@ def hash_object(data: bytes, type_: str = "blob", write: bool = True) -> str:
         data: The raw data to hash
         type_: Object type ('blob', 'tree', 'commit')
         write: Whether to write the object to disk
+        repo: Repository instance (optional, defaults to current repo)
 
     Returns:
         SHA-1 hash of the object
@@ -27,6 +36,11 @@ def hash_object(data: bytes, type_: str = "blob", write: bool = True) -> str:
         ValueError: If type_ is invalid
         RuntimeError: If writing fails
     """
+    from .repository import Repository
+
+    if repo is None:
+        repo = Repository()
+
     if type_ not in ("blob", "tree", "commit"):
         raise ValueError(f"Invalid object type: {type_}")
 
@@ -39,17 +53,17 @@ def hash_object(data: bytes, type_: str = "blob", write: bool = True) -> str:
 
     if write:
         try:
-            _write_object(sha, full_data)
+            _write_object(sha, full_data, repo)
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to write object {sha}: {e}")
 
     return sha
 
 
-def _write_object(sha: str, data: bytes) -> None:
+def _write_object(sha: str, data: bytes, repo: "Repository") -> None:
     """Write object data to disk with compression."""
-    object_dir = f".ugit/objects/{sha[:2]}"
-    object_path = f"{object_dir}/{sha[2:]}"
+    object_dir = os.path.join(repo.ugit_dir, "objects", sha[:2])
+    object_path = os.path.join(object_dir, sha[2:])
 
     if os.path.exists(object_path):
         return  # Object already exists
@@ -63,12 +77,13 @@ def _write_object(sha: str, data: bytes) -> None:
         f.write(compressed_data)
 
 
-def get_object(sha: str) -> Tuple[str, bytes]:
+def get_object(sha: str, repo: Optional["Repository"] = None) -> Tuple[str, bytes]:
     """
     Read object by SHA hash.
 
     Args:
         sha: SHA-1 hash of the object
+        repo: Repository instance (optional, defaults to current repo)
 
     Returns:
         Tuple of (object_type, content)
@@ -77,13 +92,18 @@ def get_object(sha: str) -> Tuple[str, bytes]:
         FileNotFoundError: If object doesn't exist
         ValueError: If object format is invalid or SHA is invalid
     """
+    from .repository import Repository
+
+    if repo is None:
+        repo = Repository()
+
     if len(sha) != 40:
         raise ValueError(f"Invalid SHA length: {len(sha)}")
 
     # Try both old flat structure and new hierarchical structure
     object_paths = [
-        f".ugit/objects/{sha}",  # Old format
-        f".ugit/objects/{sha[:2]}/{sha[2:]}",  # New format
+        os.path.join(repo.ugit_dir, "objects", sha),  # Old format
+        os.path.join(repo.ugit_dir, "objects", sha[:2], sha[2:]),  # New format
     ]
 
     for object_path in object_paths:
@@ -117,12 +137,17 @@ def get_object(sha: str) -> Tuple[str, bytes]:
         raise ValueError(f"Invalid object format for {sha}: {e}")
 
 
-def object_exists(sha: str) -> bool:
+def object_exists(sha: str, repo: Optional["Repository"] = None) -> bool:
     """Check if an object exists in the object store."""
+    from .repository import Repository
+
+    if repo is None:
+        repo = Repository()
+
     if len(sha) != 40:
         return False
 
     # Check both old and new formats
-    return os.path.exists(f".ugit/objects/{sha}") or os.path.exists(
-        f".ugit/objects/{sha[:2]}/{sha[2:]}"
-    )
+    return os.path.exists(
+        os.path.join(repo.ugit_dir, "objects", sha)
+    ) or os.path.exists(os.path.join(repo.ugit_dir, "objects", sha[:2], sha[2:]))
