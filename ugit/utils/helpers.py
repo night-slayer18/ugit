@@ -103,13 +103,14 @@ def ensure_repository() -> "Repository":
         Repository instance
 
     Raises:
-        RuntimeError: If not in a repository
+        NotInRepositoryError: If not in a repository
     """
+    from ..core.exceptions import NotInRepositoryError
     from ..core.repository import Repository
 
     repo = Repository()
     if not repo.is_repository():
-        raise RuntimeError("Not a ugit repository")
+        raise NotInRepositoryError()
     return repo
 
 
@@ -222,25 +223,8 @@ def get_tree_entries(
                 mode = "40000" if obj_type == "tree" else "100644"
                 entries.append((mode, path, sha))
             return entries
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            # Fallback to Git-style binary parsing
-            entries = []
-            content = tree_content
-            while content:
-                null_idx = content.find(b"\x00")
-                if null_idx == -1:
-                    break
-                mode_name = content[:null_idx].decode("utf-8")
-                sha_bytes = content[null_idx + 1 : null_idx + 21]
-                if len(sha_bytes) < 20:
-                    break
-                sha = sha_bytes.hex()
-                content = content[null_idx + 21 :]
-                parts = mode_name.split(" ", 1)
-                if len(parts) == 2:
-                    mode, name = parts
-                    entries.append((mode, name, sha))
-            return entries
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            raise ValueError(f"Invalid tree format in {tree_sha}") from e
     except (FileNotFoundError, ValueError) as e:
         raise ValueError(f"Invalid tree {tree_sha}: {e}")
 

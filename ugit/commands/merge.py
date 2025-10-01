@@ -11,6 +11,7 @@ import time
 from typing import Dict, Optional, Set
 
 from ..core.checkout import checkout_commit
+from ..core.exceptions import BranchNotFoundError, MergeConflictError, UgitError
 from ..core.objects import get_object, hash_object
 from ..core.repository import Repository
 from ..utils.config import Config
@@ -36,18 +37,15 @@ def merge(branch_name: str, no_ff: bool = False) -> None:
     # Get current branch
     current_branch = get_current_branch_name(repo)
     if not current_branch:
-        print("Not on any branch - cannot merge", file=sys.stderr)
-        return
+        raise UgitError("Not on any branch - cannot merge")
 
     if branch_name == current_branch:
-        print(f"Cannot merge branch '{branch_name}' into itself", file=sys.stderr)
-        return
+        raise UgitError(f"Cannot merge branch '{branch_name}' into itself")
 
     # Check if target branch exists
     branch_path = os.path.join(repo.ugit_dir, "refs", "heads", branch_name)
     if not os.path.exists(branch_path):
-        print(f"Branch '{branch_name}' does not exist", file=sys.stderr)
-        return
+        raise BranchNotFoundError(f"Branch '{branch_name}' does not exist")
 
     # Get commit SHAs
     with open(branch_path, "r", encoding="utf-8") as f:
@@ -55,8 +53,7 @@ def merge(branch_name: str, no_ff: bool = False) -> None:
 
     current_commit = repo.get_head_ref()
     if not current_commit:
-        print("No current commit to merge into", file=sys.stderr)
-        return
+        raise UgitError("No current commit to merge into")
 
     # Check if it's a fast-forward merge
     if is_ancestor(repo, current_commit, merge_commit):
@@ -74,8 +71,7 @@ def _fast_forward_merge(repo: Repository, target_commit: str, branch_name: str) 
     # Update current branch to point to target commit
     current_branch = get_current_branch_name(repo)
     if current_branch is None:
-        print("Error: Not on a branch (detached HEAD)", file=sys.stderr)
-        return
+        raise UgitError("Not on a branch (detached HEAD)")
     current_branch_path = os.path.join(repo.ugit_dir, "refs", "heads", current_branch)
 
     with open(current_branch_path, "w", encoding="utf-8") as f:
@@ -94,8 +90,7 @@ def _create_merge_commit(
     """Create a merge commit with two parents."""
     current_branch = get_current_branch_name(repo)
     if current_branch is None:
-        print("Error: Not on a branch (detached HEAD)", file=sys.stderr)
-        return
+        raise UgitError("Not on a branch (detached HEAD)")
 
     config = Config(repo.path)
     author = config.get_author_string()
@@ -134,8 +129,7 @@ def _three_way_merge(
     common_ancestor = _find_common_ancestor(repo, current_commit, merge_commit)
 
     if not common_ancestor:
-        print("No common ancestor found - cannot merge", file=sys.stderr)
-        return
+        raise UgitError("No common ancestor found - cannot merge")
 
     # Get file trees for three-way merge
     try:
@@ -143,8 +137,7 @@ def _three_way_merge(
         current_files = _get_commit_files(repo, current_commit)
         merge_files = _get_commit_files(repo, merge_commit)
     except ValueError as e:
-        print(f"Error during merge: {e}", file=sys.stderr)
-        return
+        raise UgitError(f"Error during merge: {e}")
 
     # Perform merge
     merged_files, conflicts = _merge_files(ancestor_files, current_files, merge_files)
@@ -153,11 +146,7 @@ def _three_way_merge(
     _write_merged_files(merged_files)
 
     if conflicts:
-        print("Merge conflicts detected in:")
-        for file_path in conflicts:
-            print(f"  {file_path}")
-        print("Please resolve conflicts and commit manually")
-        return
+        raise MergeConflictError("Merge conflicts detected", conflicts=conflicts)
 
     # Create merge commit only if no conflicts
     merged_tree_sha = _create_tree_from_files(merged_files)
@@ -322,8 +311,7 @@ def _create_merge_commit_with_tree(
     """Create merge commit with specific tree."""
     current_branch = get_current_branch_name(repo)
     if current_branch is None:
-        print("Error: Not on a branch (detached HEAD)", file=sys.stderr)
-        return
+        raise UgitError("Not on a branch (detached HEAD)")
 
     config = Config(repo.path)
     author = config.get_author_string()

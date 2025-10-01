@@ -6,10 +6,10 @@ This module handles uploading local changes to remote repositories.
 
 import os
 import shutil
-import sys
 from typing import Optional, Set
 
-from ..core.objects import get_object, object_exists
+from ..core.exceptions import NonFastForwardError, UgitError
+from ..core.objects import get_object
 from ..core.repository import Repository
 from ..utils.helpers import get_current_branch_name, is_local_path
 from .remote import get_remote_url
@@ -32,37 +32,31 @@ def push(
     repo = Repository()
 
     if not repo.is_repository():
-        print("Not a ugit repository")
-        return 1
+        raise UgitError("Not a ugit repository")
 
     # Get remote URL
     remote_url = get_remote_url(remote_name)
     if not remote_url:
-        print(
-            f"fatal: '{remote_name}' does not appear to be a ugit repository",
-            file=sys.stderr,
+        raise UgitError(
+            f"fatal: '{remote_name}' does not appear to be a ugit repository"
         )
-        return 1
 
     # Get current branch if none specified
     if branch is None:
         branch = get_current_branch_name(repo)
         if not branch:
-            print("fatal: You are not currently on a branch", file=sys.stderr)
-            return 1
+            raise UgitError("fatal: You are not currently on a branch")
 
     # Get local branch ref
     local_branch_path = os.path.join(repo.ugit_dir, "refs", "heads", branch)
     if not os.path.exists(local_branch_path):
-        print(f"fatal: src refspec {branch} does not match any", file=sys.stderr)
-        return 1
+        raise UgitError(f"fatal: src refspec {branch} does not match any")
 
     try:
         with open(local_branch_path, "r") as f:
             local_sha = f.read().strip()
     except (IOError, OSError) as e:
-        print(f"fatal: Failed to read local ref: {e}", file=sys.stderr)
-        return 1
+        raise UgitError(f"fatal: Failed to read local ref: {e}")
 
     print(f"Pushing to {remote_url}")
 
@@ -70,15 +64,10 @@ def push(
         if is_local_path(remote_url):
             _push_local(repo, remote_name, remote_url, branch, local_sha, force)
         else:
-            print(
-                f"fatal: remote protocols not yet supported: {remote_url}",
-                file=sys.stderr,
-            )
-            return 1
+            raise UgitError(f"fatal: remote protocols not yet supported: {remote_url}")
 
     except Exception as e:
-        print(f"fatal: failed to push to '{remote_name}': {e}", file=sys.stderr)
-        return 1
+        raise UgitError(f"fatal: failed to push to '{remote_name}': {e}")
 
     return 0
 
@@ -121,14 +110,12 @@ def _push_local(
     # Check if this is a fast-forward push
     if remote_sha and not force:
         if not _is_fast_forward(repo, remote_sha, local_sha):
-            print(f"! [rejected] {branch} -> {branch} (non-fast-forward)")
-            print(
-                "hint: Updates were rejected because the tip of your current branch is behind"
+            raise NonFastForwardError(
+                f"! [rejected] {branch} -> {branch} (non-fast-forward)\n"
+                "hint: Updates were rejected because the tip of your current branch is behind\n"
+                "hint: its remote counterpart. Integrate the remote changes (e.g.\n"
+                "hint: 'ugit pull ...') before pushing again."
             )
-            print("hint: its remote counterpart. Integrate the remote changes (e.g.")
-            print("hint: 'ugit pull ...') before pushing again.")
-            print("hint: See the 'Note about fast-forwards' for details.")
-            return
 
     # Push objects
     objects_pushed = _push_objects(repo, remote_url, local_sha)

@@ -10,9 +10,8 @@ import sys
 from typing import Optional
 
 from ..core.checkout import checkout_commit
-from ..core.objects import get_object
+from ..core.exceptions import UgitError
 from ..core.repository import Repository
-from ..utils.config import Config
 from ..utils.helpers import is_local_path
 from .remote import add_remote
 
@@ -31,13 +30,13 @@ def clone(url: str, directory: Optional[str] = None) -> None:
 
     # Check if directory already exists
     if os.path.exists(directory):
-        raise RuntimeError(
+        raise UgitError(
             f"fatal: destination path '{directory}' already exists and is not an empty directory"
         )
 
     # Check if source repository exists and is valid
     if not _is_valid_source(url):
-        raise RuntimeError(
+        raise UgitError(
             f"fatal: repository '{url}' does not exist or is not a valid ugit repository"
         )
 
@@ -66,10 +65,7 @@ def clone(url: str, directory: Optional[str] = None) -> None:
         if is_local_path(url):
             _copy_local_repository(url, repo)
         else:
-            # Clean up on failure
-            os.chdir(original_cwd)
-            shutil.rmtree(directory)
-            raise RuntimeError(f"fatal: remote protocols not yet supported: {url}")
+            raise UgitError(f"fatal: remote protocols not yet supported: {url}")
 
         # Add origin remote
         add_remote("origin", url)
@@ -90,7 +86,7 @@ def clone(url: str, directory: Optional[str] = None) -> None:
                 sys.stderr.write(
                     f"warning: could not remove {directory}: {cleanup_error}\n"
                 )
-        raise RuntimeError(f"fatal: failed to clone repository: {e}")
+        raise UgitError(f"fatal: failed to clone repository: {e}")
     finally:
         # Always return to original directory
         os.chdir(original_cwd)

@@ -3,8 +3,8 @@
 import sys
 from typing import Optional
 
+from ..core.exceptions import NotInRepositoryError
 from ..utils.config import Config
-from ..utils.helpers import ensure_repository
 
 
 def config(
@@ -22,10 +22,13 @@ def config(
         0 on success, 1 on error
     """
     try:
+        # Try to use repository config if available
+        from ..utils.helpers import ensure_repository
+
         repo = ensure_repository()
         config_obj = Config(repo.path)
-    except (RuntimeError, SystemExit):
-        # Not in a repository - use global config
+    except NotInRepositoryError:
+        # Not in a repository - use config in current directory as a fallback
         config_obj = Config(".")
 
     if list_all:

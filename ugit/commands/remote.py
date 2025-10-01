@@ -5,7 +5,7 @@ This module handles adding, removing, listing, and showing remote repositories.
 """
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from ..core.repository import Repository
 from ..utils.config import Config
@@ -104,7 +104,6 @@ def list_remotes(verbose: bool = False) -> None:
     Args:
         verbose: Show URLs as well as names
     """
-    config = Config()
     remotes = get_all_remotes()
 
     if not remotes:
@@ -130,7 +129,6 @@ def show_remote(name: str) -> None:
     Args:
         name: Remote name
     """
-    config = Config()
     remotes = get_all_remotes()
 
     if name not in remotes:
@@ -152,7 +150,7 @@ def show_remote(name: str) -> None:
             if os.path.isfile(branch_path):
                 try:
                     with open(branch_path, "r") as f:
-                        commit_sha = f.read().strip()
+                        f.read().strip()
                     print(f"    {name}/{branch_file}")
                 except (IOError, OSError):
                     pass

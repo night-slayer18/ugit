@@ -2,7 +2,6 @@
 Show repository status.
 """
 
-import fnmatch
 import json
 import os
 from typing import List, Set

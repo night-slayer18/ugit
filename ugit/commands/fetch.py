@@ -7,12 +7,12 @@ This module handles fetching changes from remote repositories without merging th
 import os
 import shutil
 import sys
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 
 from ..core.objects import get_object, object_exists
 from ..core.repository import Repository
 from ..utils.helpers import is_local_path
-from .remote import get_all_remotes, get_remote_url
+from .remote import get_remote_url
 
 
 def fetch(remote_name: str = "origin", branch: Optional[str] = None) -> int:

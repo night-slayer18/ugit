@@ -7,6 +7,7 @@ This module handles branch creation, listing, switching, and deletion.
 import os
 from typing import Optional
 
+from ..core.exceptions import BranchExistsError, BranchNotFoundError
 from ..core.repository import Repository
 from ..utils.helpers import ensure_repository, get_current_branch_name
 
@@ -55,18 +56,15 @@ def _list_branches(repo: Repository) -> None:
 def _create_branch(repo: Repository, branch_name: str) -> None:
     """Create a new branch."""
     if not _is_valid_branch_name(branch_name):
-        print(f"Invalid branch name: '{branch_name}'")
-        return
+        raise ValueError(f"Invalid branch name: '{branch_name}'")
 
     branch_path = os.path.join(repo.ugit_dir, "refs", "heads", branch_name)
     if os.path.exists(branch_path):
-        print(f"Branch '{branch_name}' already exists")
-        return
+        raise BranchExistsError(f"Branch '{branch_name}' already exists")
 
     current_commit = repo.get_head_ref()
     if not current_commit:
-        print("No commits yet - cannot create branch")
-        return
+        raise ValueError("No commits yet - cannot create branch")
 
     os.makedirs(os.path.dirname(branch_path), exist_ok=True)
     with open(branch_path, "w", encoding="utf-8") as f:
@@ -79,14 +77,12 @@ def _delete_branch(repo: Repository, branch_name: str) -> None:
     current_branch = get_current_branch_name(repo)
 
     if branch_name == current_branch:
-        print(f"Cannot delete current branch '{branch_name}'")
-        return
+        raise ValueError(f"Cannot delete current branch '{branch_name}'")
 
     branch_path = os.path.join(repo.ugit_dir, "refs", "heads", branch_name)
 
     if not os.path.exists(branch_path):
-        print(f"Branch '{branch_name}' does not exist")
-        return
+        raise BranchNotFoundError(f"Branch '{branch_name}' does not exist")
 
     os.remove(branch_path)
     print(f"Deleted branch '{branch_name}'")

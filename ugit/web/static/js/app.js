@@ -23,6 +23,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function showNotification(message) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.classList.add('show');
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000); // Hide after 3 seconds
+}
+
 async function loadLatestCommit() {
     try {
         // First try the latest-commit endpoint, fallback to files endpoint
@@ -63,9 +73,11 @@ async function loadFiles(path) {
             showFileList(); // Make sure file list is visible
         } else {
             console.error('Error: No files in response');
+            showNotification('Error: Could not load file list.');
         }
     } catch (error) {
         console.error('Error loading files:', error);
+        showNotification('Error loading files. See console for details.');
     }
 }
 
@@ -148,11 +160,11 @@ async function viewFile(fileName) {
             showFileViewer(fileName, data.content, data.size, data.type);
         } else {
             console.error('Error loading file:', data);
-            alert('Error loading file');
+            showNotification('Error loading file');
         }
     } catch (error) {
         console.error('Error loading file:', error);
-        alert('Error loading file');
+        showNotification('Error loading file');
     }
 }
 

@@ -3,9 +3,9 @@ Checkout files from a specific commit or switch to a branch.
 """
 
 import os
-import sys
 
 from ..core.checkout import checkout_commit
+from ..core.exceptions import InvalidRefError, UgitError
 from ..core.repository import Repository
 from ..utils.helpers import ensure_repository
 
@@ -30,7 +30,11 @@ def checkout(target: str, create_branch: bool = False) -> None:
         # Create new branch and switch to it
         _create_and_switch_branch(repo, target)
     else:
-        # Assume it's a commit SHA
+        # Assume it's a commit SHA, but verify it exists
+        from ..core.objects import object_exists
+
+        if not object_exists(target):
+            raise InvalidRefError(f"Invalid reference '{target}'")
         checkout_commit(repo, target)
 
 
@@ -57,8 +61,7 @@ def _create_and_switch_branch(repo: Repository, branch_name: str) -> None:
     # Get current HEAD commit
     current_commit = repo.get_head_ref()
     if not current_commit:
-        print("No commits yet - cannot create branch")
-        return
+        raise UgitError("No commits yet - cannot create branch")
 
     # Create refs/heads directory if it doesn't exist
     refs_heads_dir = os.path.join(repo.ugit_dir, "refs", "heads")

@@ -4,15 +4,13 @@ Pull changes from remote repositories.
 This module handles fetching and merging changes from remote repositories.
 """
 
-import json
 import os
 import sys
 from typing import Optional
 
 from ..core.checkout import checkout_commit
-from ..core.objects import get_object
 from ..core.repository import Repository
-from ..utils.helpers import get_commit_data, get_current_branch_name, is_ancestor
+from ..utils.helpers import get_current_branch_name, is_ancestor
 from .fetch import fetch
 
 

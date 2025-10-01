@@ -10,7 +10,7 @@ This module handles comparing files between different states:
 import difflib
 import os
 import sys
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Optional
 
 from ..core.objects import get_object
 from ..core.repository import Index, Repository

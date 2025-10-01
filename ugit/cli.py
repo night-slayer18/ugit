@@ -31,6 +31,7 @@ from .commands import (
     stash_pop,
     status,
 )
+from .core.exceptions import UgitError
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -335,15 +336,14 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         return result if result is not None else 0
 
-    except RuntimeError as e:
-        # Handle RuntimeError from ensure_repository()
+    except UgitError as e:
         sys.stderr.write(f"Error: {e}\n")
         return 1
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
         return 130
     except Exception as e:
-        sys.stderr.write(f"Error: {e}\n")
+        sys.stderr.write(f"An unexpected error occurred: {e}\n")
         return 1
 
 
