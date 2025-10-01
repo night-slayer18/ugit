@@ -11,9 +11,11 @@ from ugit.commands.add import add
 from ugit.commands.branch import branch
 from ugit.commands.checkout import checkout
 from ugit.commands.commit import commit
+from ugit.commands.config import config
 from ugit.commands.diff import diff
 from ugit.commands.init import init
 from ugit.commands.stash import stash, stash_pop
+from ugit.core.exceptions import InvalidRefError, NotInRepositoryError
 
 
 class TestUgitIntegration(TestCase):
@@ -24,6 +26,9 @@ class TestUgitIntegration(TestCase):
         self.test_dir = tempfile.mkdtemp()
         self.original_cwd = os.getcwd()
         os.chdir(self.test_dir)
+        init()
+        config("user.name", "Test User")
+        config("user.email", "test@example.com")
 
     def tearDown(self):
         """Clean up test environment."""
@@ -32,37 +37,26 @@ class TestUgitIntegration(TestCase):
 
     def test_complete_workflow(self):
         """Test a complete ugit workflow."""
-        # Initialize repository
-        init()
-
         # Create initial file and commit
         with open("README.md", "w") as f:
             f.write("# My Project\n\nThis is a test project.")
 
         add(["README.md"])
-        commit("Initial commit", "Test User <test@example.com>")
+        commit("Initial commit")
 
         # Create a feature branch
-        try:
-            branch("feature/add-docs")
-            checkout("feature/add-docs")
-        except SystemExit:
-            pass
+        branch("feature/add-docs")
+        checkout("feature/add-docs")
 
         # Add documentation
         with open("docs.md", "w") as f:
             f.write("# Documentation\n\nThis is the documentation.")
 
         add(["docs.md"])
-        commit("Add documentation", "Test User <test@example.com>")
+        commit("Add documentation")
 
         # Switch back to main branch (assuming it exists)
-        try:
-            # Create main branch first
-            branch("main")
-            checkout("main")
-        except SystemExit:
-            pass
+        checkout("main")
 
         # Make changes on main
         with open("README.md", "w") as f:
@@ -71,29 +65,20 @@ class TestUgitIntegration(TestCase):
             )
 
         add(["README.md"])
-        commit("Update README on main", "Test User <test@example.com>")
+        commit("Update README on main")
 
         # Test stash functionality
         with open("temp.txt", "w") as f:
             f.write("Temporary changes")
 
-        try:
-            stash("Temporary work")
-            stash_pop()
-        except SystemExit:
-            pass
+        stash("Temporary work")
+        stash_pop()
 
         # Test diff functionality
-        try:
-            diff()
-        except SystemExit:
-            pass
+        diff()
 
     def test_ignore_functionality(self):
         """Test .ugitignore functionality."""
-        # Initialize repository
-        init()
-
         # Create .ugitignore
         with open(".ugitignore", "w") as f:
             f.write("*.tmp\n__pycache__/\n*.log")
@@ -113,32 +98,26 @@ class TestUgitIntegration(TestCase):
             f.write("Log entry")
 
         # Add all files - should respect ignore patterns
-        try:
-            add(["."])
-        except SystemExit:
-            pass
+        add(["."])
 
-        commit("Initial commit with ignores", "Test User <test@example.com>")
+        commit("Initial commit with ignores")
 
     def test_error_handling(self):
         """Test error handling for invalid operations."""
+        # Initialize a separate directory for this test to avoid conflicts
+        error_dir = tempfile.mkdtemp()
+        os.chdir(error_dir)
+
         # Try operations without a repository
-        try:
+        with self.assertRaises(NotInRepositoryError):
             add(["nonexistent.txt"])
-        except RuntimeError:
-            pass  # Expected to fail
 
         # Initialize repository
         init()
 
         # Try to add non-existent file
-        try:
-            add(["nonexistent.txt"])
-        except SystemExit:
-            pass  # Expected to fail
+        add(["nonexistent.txt"])
 
         # Try to checkout non-existent branch
-        try:
+        with self.assertRaises(InvalidRefError):
             checkout("nonexistent-branch")
-        except SystemExit:
-            pass  # Expected to fail

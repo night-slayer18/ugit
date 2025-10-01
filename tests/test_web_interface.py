@@ -2,7 +2,6 @@
 Tests for the web interface functionality and serve command.
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -15,7 +14,6 @@ from ugit.commands.add import add
 from ugit.commands.commit import commit
 from ugit.commands.init import init
 from ugit.commands.serve import serve
-from ugit.core.repository import Repository
 
 pytestmark = pytest.mark.skipif(
     sys.platform == "win32",
@@ -187,10 +185,10 @@ class TestWebServer:
         assert len(data["commits"]) > 0
 
         # Check commit structure
-        commit = data["commits"][0]
-        assert "sha" in commit  # ugit uses 'sha' not 'hash'
-        assert "message" in commit
-        assert "Initial commit" in commit["message"]
+        commit_data = data["commits"][0]
+        assert "sha" in commit_data  # ugit uses 'sha' not 'hash'
+        assert "message" in commit_data
+        assert "Initial commit" in commit_data["message"]
 
     def test_static_files(self, client):
         """Test serving static files."""

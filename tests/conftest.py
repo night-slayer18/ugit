@@ -35,3 +35,13 @@ def initialized_repo(temp_repo: Path) -> Path:
 
     init()
     return temp_repo
+
+
+@pytest.fixture
+def repo_with_config(initialized_repo: Path) -> Path:
+    """Create an initialized ugit repository with default user config."""
+    from ugit.commands.config import config
+
+    config("user.name", "Test User")
+    config("user.email", "test@ugit.com")
+    return initialized_repo

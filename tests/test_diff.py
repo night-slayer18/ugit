@@ -9,6 +9,7 @@ from unittest import TestCase
 
 from ugit.commands.add import add
 from ugit.commands.commit import commit
+from ugit.commands.config import config
 from ugit.commands.diff import diff
 from ugit.commands.init import init
 
@@ -24,6 +25,8 @@ class TestDiffCommand(TestCase):
 
         # Initialize repository
         init()
+        config("user.name", "Test User")
+        config("user.email", "test@ugit.com")
 
     def tearDown(self):
         """Clean up test environment."""
@@ -37,13 +40,10 @@ class TestDiffCommand(TestCase):
             f.write("Hello, World!")
 
         add(["test.txt"])
-        commit("Initial commit", "Test Author <test@example.com>")
+        commit("Initial commit")
 
         # Test that diff shows no changes
-        try:
-            diff()  # Should show "No changes in working directory"
-        except SystemExit:
-            pass
+        diff()  # Should show "No changes in working directory"
 
     def test_diff_working_directory(self):
         """Test diff showing working directory changes."""
@@ -52,16 +52,13 @@ class TestDiffCommand(TestCase):
             f.write("Hello, World!")
 
         add(["test.txt"])
-        commit("Initial commit", "Test Author <test@example.com>")
+        commit("Initial commit")
 
         # Modify the file
         with open("test.txt", "w") as f:
             f.write("Hello, Universe!")
 
-        try:
-            diff()  # Should show changes
-        except SystemExit:
-            pass
+        diff()  # Should show changes
 
     def test_diff_staged_changes(self):
         """Test diff showing staged changes."""
@@ -70,7 +67,7 @@ class TestDiffCommand(TestCase):
             f.write("Hello, World!")
 
         add(["test.txt"])
-        commit("Initial commit", "Test Author <test@example.com>")
+        commit("Initial commit")
 
         # Modify and stage the file
         with open("test.txt", "w") as f:
@@ -78,10 +75,7 @@ class TestDiffCommand(TestCase):
 
         add(["test.txt"])
 
-        try:
-            diff(staged=True)  # Should show staged changes
-        except SystemExit:
-            pass
+        diff(staged=True)  # Should show staged changes
 
     def test_diff_with_ugitignore(self):
         """Test that diff respects .ugitignore."""
@@ -97,7 +91,7 @@ class TestDiffCommand(TestCase):
             f.write("Temporary file")
 
         add(["."])
-        commit("Initial commit", "Test Author <test@example.com>")
+        commit("Initial commit")
 
         # Modify both files
         with open("test.txt", "w") as f:
@@ -106,7 +100,4 @@ class TestDiffCommand(TestCase):
         with open("temp.tmp", "w") as f:
             f.write("Modified temporary file")
 
-        try:
-            diff()  # Should only show test.txt changes, not temp.tmp
-        except SystemExit:
-            pass
+        diff()  # Should only show test.txt changes, not temp.tmp

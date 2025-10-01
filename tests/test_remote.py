@@ -11,9 +11,9 @@ from unittest.mock import patch
 
 from ugit.commands.clone import clone
 from ugit.commands.fetch import fetch
-from ugit.commands.pull import pull
 from ugit.commands.push import push
 from ugit.commands.remote import add_remote, list_remotes, remove_remote, show_remote
+from ugit.core.exceptions import UgitError
 from ugit.core.repository import Repository
 from ugit.utils.config import Config
 
@@ -208,13 +208,13 @@ class TestCloneOperations(unittest.TestCase):
         """Test cloning to an existing directory."""
         os.makedirs("existing")
 
-        with self.assertRaises(RuntimeError) as context:
+        with self.assertRaises(UgitError) as context:
             clone(self.source_dir, "existing")
         self.assertIn("already exists", str(context.exception))
 
     def test_clone_invalid_source(self):
         """Test cloning from invalid source."""
-        with self.assertRaises(RuntimeError) as context:
+        with self.assertRaises(UgitError) as context:
             clone("/nonexistent/path", "cloned")
         self.assertIn(
             "does not exist or is not a valid ugit repository", str(context.exception)
@@ -361,13 +361,8 @@ class TestPushOperations(unittest.TestCase):
 
     def test_push_nonexistent_remote(self):
         """Test pushing to non-existent remote."""
-        with patch("builtins.print") as mock_print:
-            result = push("nonexistent")
-            self.assertEqual(result, 1)
-            mock_print.assert_called_with(
-                "fatal: 'nonexistent' does not appear to be a ugit repository",
-                file=sys.stderr,
-            )
+        with self.assertRaises(UgitError):
+            push("nonexistent")
 
 
 if __name__ == "__main__":

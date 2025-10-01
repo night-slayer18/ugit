@@ -4,9 +4,8 @@ import os
 import shutil
 import tempfile
 
-import pytest
-
 from ugit.commands.config import config
+from ugit.commands.init import init
 from ugit.utils.config import Config
 
 
@@ -18,6 +17,7 @@ class TestConfigCommand:
         self.test_dir = tempfile.mkdtemp()
         self.original_cwd = os.getcwd()
         os.chdir(self.test_dir)
+        init()  # Initialize a repository for the tests
 
     def teardown_method(self):
         """Clean up test environment."""

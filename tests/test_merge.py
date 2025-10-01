@@ -6,12 +6,15 @@ import os
 import tempfile
 import unittest
 
+import pytest
+
 from ugit.commands.add import add
 from ugit.commands.branch import branch
 from ugit.commands.checkout import checkout
 from ugit.commands.commit import commit
 from ugit.commands.init import init
 from ugit.commands.merge import merge
+from ugit.core.exceptions import MergeConflictError, UgitError
 from ugit.core.repository import Repository
 
 
@@ -43,11 +46,8 @@ class TestMergeCommand(unittest.TestCase):
         commit("Initial commit", "Test Author <test@example.com>")
 
         # Create feature branch
-        try:
-            branch("feature")
-            checkout("feature")
-        except SystemExit:
-            pass
+        branch("feature")
+        checkout("feature")
 
         # Add commits to feature branch
         with open("feature.txt", "w") as f:
@@ -56,16 +56,10 @@ class TestMergeCommand(unittest.TestCase):
         commit("Feature commit", "Test Author <test@example.com>")
 
         # Switch back to main
-        try:
-            checkout("main")
-        except SystemExit:
-            pass
+        checkout("main")
 
         # Merge feature branch (should be fast-forward)
-        try:
-            merge("feature")
-        except SystemExit:
-            pass
+        merge("feature")
 
         # Check that feature.txt exists in main
         self.assertTrue(os.path.exists("feature.txt"))
@@ -82,11 +76,8 @@ class TestMergeCommand(unittest.TestCase):
         commit("Initial commit", "Test Author <test@example.com>")
 
         # Create feature branch
-        try:
-            branch("feature")
-            checkout("feature")
-        except SystemExit:
-            pass
+        branch("feature")
+        checkout("feature")
 
         # Add commit to feature
         with open("feature.txt", "w") as f:
@@ -95,16 +86,10 @@ class TestMergeCommand(unittest.TestCase):
         commit("Feature commit", "Test Author <test@example.com>")
 
         # Switch back to main
-        try:
-            checkout("main")
-        except SystemExit:
-            pass
+        checkout("main")
 
         # Merge with no-ff
-        try:
-            merge("feature", no_ff=True)
-        except SystemExit:
-            pass
+        merge("feature", no_ff=True)
 
         # Check that feature content is merged
         self.assertTrue(os.path.exists("feature.txt"))
@@ -121,11 +106,8 @@ class TestMergeCommand(unittest.TestCase):
         commit("Initial commit", "Test Author <test@example.com>")
 
         # Create and switch to feature branch
-        try:
-            branch("feature")
-            checkout("feature")
-        except SystemExit:
-            pass
+        branch("feature")
+        checkout("feature")
 
         # Add commit to feature branch
         with open("feature.txt", "w") as f:
@@ -134,10 +116,7 @@ class TestMergeCommand(unittest.TestCase):
         commit("Feature commit", "Test Author <test@example.com>")
 
         # Switch back to main and add different commit
-        try:
-            checkout("main")
-        except SystemExit:
-            pass
+        checkout("main")
 
         with open("main.txt", "w") as f:
             f.write("Main content")
@@ -145,10 +124,7 @@ class TestMergeCommand(unittest.TestCase):
         commit("Main commit", "Test Author <test@example.com>")
 
         # Merge feature branch
-        try:
-            merge("feature")
-        except SystemExit:
-            pass
+        merge("feature")
 
         # Check that both files exist
         self.assertTrue(os.path.exists("feature.txt"))
@@ -167,11 +143,8 @@ class TestMergeCommand(unittest.TestCase):
         commit("Initial commit", "Test Author <test@example.com>")
 
         # Create feature branch and modify file
-        try:
-            branch("feature")
-            checkout("feature")
-        except SystemExit:
-            pass
+        branch("feature")
+        checkout("feature")
 
         with open("conflict.txt", "w") as f:
             f.write("Feature content")
@@ -179,10 +152,7 @@ class TestMergeCommand(unittest.TestCase):
         commit("Feature commit", "Test Author <test@example.com>")
 
         # Switch to main and modify same file differently
-        try:
-            checkout("main")
-        except SystemExit:
-            pass
+        checkout("main")
 
         with open("conflict.txt", "w") as f:
             f.write("Main content")
@@ -190,10 +160,8 @@ class TestMergeCommand(unittest.TestCase):
         commit("Main commit", "Test Author <test@example.com>")
 
         # Attempt merge - should detect conflict
-        try:
+        with pytest.raises(MergeConflictError):
             merge("feature")
-        except SystemExit:
-            pass
 
         # Check that conflict markers exist
         with open("conflict.txt", "r") as f:
@@ -214,12 +182,8 @@ class TestMergeCommand(unittest.TestCase):
         commit("Initial commit", "Test Author <test@example.com>")
 
         # Try to merge non-existent branch
-        try:
+        with pytest.raises(UgitError):
             merge("nonexistent")
-        except SystemExit:
-            pass
-
-        # Should have shown error message (captured in test output)
 
     def test_merge_into_same_branch(self):
         """Test merge branch into itself."""
@@ -232,19 +196,12 @@ class TestMergeCommand(unittest.TestCase):
         commit("Initial commit", "Test Author <test@example.com>")
 
         # Create branch and switch to it
-        try:
-            branch("feature")
-            checkout("feature")
-        except SystemExit:
-            pass
+        branch("feature")
+        checkout("feature")
 
         # Try to merge branch into itself
-        try:
+        with pytest.raises(UgitError):
             merge("feature")
-        except SystemExit:
-            pass
-
-        # Should show appropriate error
 
     def test_merge_when_not_on_branch(self):
         """Test merge when HEAD is detached."""
@@ -260,24 +217,14 @@ class TestMergeCommand(unittest.TestCase):
         repo = Repository()
         commit_sha = repo.get_head_ref()
 
-        try:
-            checkout(commit_sha)  # Detached HEAD
-        except SystemExit:
-            pass
+        checkout(commit_sha)  # Detached HEAD
 
         # Create branch to merge
-        try:
-            branch("feature")
-        except SystemExit:
-            pass
+        branch("feature")
 
         # Try to merge while detached
-        try:
+        with pytest.raises(UgitError):
             merge("feature")
-        except SystemExit:
-            pass
-
-        # Should show error about not being on any branch
 
     def test_merge_preserves_history(self):
         """Test that merge commits preserve both parent histories."""
@@ -290,11 +237,8 @@ class TestMergeCommand(unittest.TestCase):
         commit("Base commit", "Test Author <test@example.com>")
 
         # Create feature branch
-        try:
-            branch("feature")
-            checkout("feature")
-        except SystemExit:
-            pass
+        branch("feature")
+        checkout("feature")
 
         with open("feature.txt", "w") as f:
             f.write("Feature")
@@ -302,10 +246,7 @@ class TestMergeCommand(unittest.TestCase):
         commit("Feature commit", "Test Author <test@example.com>")
 
         # Switch to main and add commit
-        try:
-            checkout("main")
-        except SystemExit:
-            pass
+        checkout("main")
 
         with open("main.txt", "w") as f:
             f.write("Main")
@@ -313,10 +254,7 @@ class TestMergeCommand(unittest.TestCase):
         commit("Main commit", "Test Author <test@example.com>")
 
         # Merge feature
-        try:
-            merge("feature")
-        except SystemExit:
-            pass
+        merge("feature")
 
         # Verify all files are present
         self.assertTrue(os.path.exists("base.txt"))
