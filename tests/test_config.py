@@ -52,13 +52,13 @@ class TestConfigCommand:
 
     def test_invalid_key_format(self, capsys):
         """Test error handling for invalid key format."""
-        with pytest.raises(SystemExit):
-            config("invalidkey", "value")
+        result = config("invalidkey", "value")
+        assert result == 1
 
     def test_get_nonexistent_key(self, capsys):
         """Test getting a non-existent configuration key."""
-        with pytest.raises(SystemExit):
-            config("user.nonexistent")
+        result = config("user.nonexistent")
+        assert result == 1
 
     def test_config_persistence(self, capsys):
         """Test that configuration persists across operations."""

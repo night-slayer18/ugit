@@ -8,7 +8,8 @@ import tempfile
 from unittest import TestCase
 
 from ugit.commands.add import add
-from ugit.commands.branch import branch, checkout_branch
+from ugit.commands.branch import branch
+from ugit.commands.checkout import checkout
 from ugit.commands.commit import commit
 from ugit.commands.diff import diff
 from ugit.commands.init import init
@@ -44,7 +45,7 @@ class TestUgitIntegration(TestCase):
         # Create a feature branch
         try:
             branch("feature/add-docs")
-            checkout_branch("feature/add-docs")
+            checkout("feature/add-docs")
         except SystemExit:
             pass
 
@@ -59,7 +60,7 @@ class TestUgitIntegration(TestCase):
         try:
             # Create main branch first
             branch("main")
-            checkout_branch("main")
+            checkout("main")
         except SystemExit:
             pass
 
@@ -124,7 +125,7 @@ class TestUgitIntegration(TestCase):
         # Try operations without a repository
         try:
             add(["nonexistent.txt"])
-        except SystemExit:
+        except RuntimeError:
             pass  # Expected to fail
 
         # Initialize repository
@@ -138,6 +139,6 @@ class TestUgitIntegration(TestCase):
 
         # Try to checkout non-existent branch
         try:
-            checkout_branch("nonexistent-branch")
+            checkout("nonexistent-branch")
         except SystemExit:
             pass  # Expected to fail

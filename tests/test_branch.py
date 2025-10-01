@@ -8,7 +8,8 @@ import tempfile
 from unittest import TestCase
 
 from ugit.commands.add import add
-from ugit.commands.branch import branch, checkout_branch
+from ugit.commands.branch import branch
+from ugit.commands.checkout import checkout
 from ugit.commands.commit import commit
 from ugit.commands.init import init
 from ugit.core.repository import Repository
@@ -76,7 +77,7 @@ class TestBranchCommand(TestCase):
         # Create a branch
         try:
             branch("test-branch")
-            checkout_branch("test-branch")
+            checkout("test-branch")
         except SystemExit:
             pass
 
@@ -91,7 +92,7 @@ class TestBranchCommand(TestCase):
     def test_create_and_checkout_branch(self):
         """Test creating and checking out a branch in one operation."""
         try:
-            checkout_branch("new-branch", create=True)
+            checkout("new-branch", create_branch=True)
         except SystemExit:
             pass
 

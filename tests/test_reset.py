@@ -71,13 +71,13 @@ class TestResetCommand(TestCase):
 
         # Check that only file2.txt is still staged
         repo = Repository()
-        index_path = os.path.join(repo.ugit_dir, "index")
-        self.assertTrue(os.path.exists(index_path))
+        from ugit.core.repository import Index
 
-        with open(index_path, "r") as f:
-            content = f.read()
-        self.assertIn("file2.txt", content)
-        self.assertNotIn("file1.txt", content)
+        index = Index(repo)
+        index_data = index.read()
+
+        self.assertIn("file2.txt", index_data)
+        self.assertNotIn("file1.txt", index_data)
 
     def test_hard_reset(self):
         """Test hard reset."""

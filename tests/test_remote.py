@@ -4,6 +4,7 @@ Tests for remote operations.
 
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -207,19 +208,17 @@ class TestCloneOperations(unittest.TestCase):
         """Test cloning to an existing directory."""
         os.makedirs("existing")
 
-        with patch("builtins.print") as mock_print:
+        with self.assertRaises(RuntimeError) as context:
             clone(self.source_dir, "existing")
-            mock_print.assert_called_with(
-                "fatal: destination path 'existing' already exists and is not an empty directory"
-            )
+        self.assertIn("already exists", str(context.exception))
 
     def test_clone_invalid_source(self):
         """Test cloning from invalid source."""
-        with patch("builtins.print") as mock_print:
+        with self.assertRaises(RuntimeError) as context:
             clone("/nonexistent/path", "cloned")
-            mock_print.assert_called_with(
-                "fatal: repository '/nonexistent/path' does not exist or is not a valid ugit repository"
-            )
+        self.assertIn(
+            "does not exist or is not a valid ugit repository", str(context.exception)
+        )
 
 
 class TestFetchOperations(unittest.TestCase):
@@ -232,16 +231,22 @@ class TestFetchOperations(unittest.TestCase):
 
         # Create source and target repositories
         self.source_dir = os.path.join(self.test_dir, "source")
-        self.target_dir = os.path.join(self.test_dir, "target")
-
-        # Create source repo
         os.makedirs(self.source_dir)
         os.chdir(self.source_dir)
         self._create_test_repo()
 
         # Clone to create target repo
         os.chdir(self.test_dir)
-        clone(self.source_dir, "target")
+        with patch("sys.exit") as mock_exit:  # Mock sys.exit during clone in setUp
+            clone(self.source_dir, "target")
+            # If clone exits, it means it failed, so we should not proceed with chdir
+            if mock_exit.called:
+                raise Exception(
+                    "Clone failed in setUp"
+                )  # Raise an exception to stop setUp
+        self.target_dir = os.path.join(
+            self.test_dir, "target"
+        )  # Ensure target_dir is set
         os.chdir(self.target_dir)
 
     def tearDown(self):
@@ -294,9 +299,11 @@ class TestFetchOperations(unittest.TestCase):
     def test_fetch_nonexistent_remote(self):
         """Test fetching from non-existent remote."""
         with patch("builtins.print") as mock_print:
-            fetch("nonexistent")
+            result = fetch("nonexistent")
+            self.assertEqual(result, 1)
             mock_print.assert_called_with(
-                "fatal: 'nonexistent' does not appear to be a ugit repository"
+                "fatal: 'nonexistent' does not appear to be a ugit repository",
+                file=sys.stderr,
             )
 
 
@@ -310,14 +317,11 @@ class TestPushOperations(unittest.TestCase):
 
         # Create source and target repositories
         self.source_dir = os.path.join(self.test_dir, "source")
-        self.target_dir = os.path.join(self.test_dir, "target")
-
-        # Create source repo
         os.makedirs(self.source_dir)
         os.chdir(self.source_dir)
         self._create_test_repo()
-
         # Create bare target repo
+        self.target_dir = os.path.join(self.test_dir, "target")
         os.makedirs(self.target_dir)
         os.chdir(self.target_dir)
         from ugit.commands.init import init
@@ -358,9 +362,11 @@ class TestPushOperations(unittest.TestCase):
     def test_push_nonexistent_remote(self):
         """Test pushing to non-existent remote."""
         with patch("builtins.print") as mock_print:
-            push("nonexistent")
+            result = push("nonexistent")
+            self.assertEqual(result, 1)
             mock_print.assert_called_with(
-                "fatal: 'nonexistent' does not appear to be a ugit repository"
+                "fatal: 'nonexistent' does not appear to be a ugit repository",
+                file=sys.stderr,
             )
 
 

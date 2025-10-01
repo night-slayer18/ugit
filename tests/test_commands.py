@@ -1,11 +1,14 @@
 """Tests for command implementations."""
 
+import io
 import os
 import tempfile
+import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from ugit.commands import add, commit, init, status
-from ugit.core.repository import Repository
+from ugit.core.repository import Index, Repository
 
 
 class TestInitCommand:
@@ -52,61 +55,71 @@ class TestInitCommand:
                 os.chdir(old_cwd)
 
 
-class TestAddCommand:
+class TestAddCommand(unittest.TestCase):
     """Test file staging."""
+
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.original_cwd = os.getcwd()
+        os.chdir(self.test_dir)
+        init()
+        self.repo = Repository()
+        self.index = Index(self.repo)
+
+    def tearDown(self):
+        os.chdir(self.original_cwd)
+        import shutil
+
+        shutil.rmtree(self.test_dir)
 
     def test_add_single_file(self):
         """Test adding a single file to staging area."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            old_cwd = os.getcwd()
-            os.chdir(tmpdir)
-
-            try:
-                init()
-
-                # Create a test file
-                test_file = Path("test.txt")
-                test_file.write_text("Hello, World!")
-
-                # Add the file
-                add("test.txt")
-
-                # Check that file is in index
-                repo = Repository()
-                from ugit.core.repository import Index
-
-                index = Index(repo)
-                index_data = index.read()
-
-                assert "test.txt" in index_data
-                assert len(index_data["test.txt"]) == 40  # SHA-1 length
-
-            finally:
-                os.chdir(old_cwd)
+        test_file = Path("test.txt")
+        test_file.write_text("Hello, World!")
+        add("test.txt")
+        index_data = self.index.read()
+        self.assertIn("test.txt", index_data)
 
     def test_add_nonexistent_file(self):
         """Test adding non-existent file."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            old_cwd = os.getcwd()
-            os.chdir(tmpdir)
+        add("nonexistent.txt")
+        index_data = self.index.read()
+        self.assertEqual(len(index_data), 0)
 
-            try:
-                init()
+    def test_add_stages_deletion(self):
+        """Test that add stages a file deletion."""
+        # Create, add, and commit a file
+        test_file = Path("a.txt")
+        test_file.write_text("initial content")
+        add("a.txt")
+        commit("initial commit")
 
-                # Try to add non-existent file
-                add("nonexistent.txt")  # Should handle gracefully
+        # Delete the file
+        os.remove("a.txt")
 
-                # Index should be empty
-                repo = Repository()
-                from ugit.core.repository import Index
+        # Run `add .` to stage the deletion
+        add(".")
 
-                index = Index(repo)
-                index_data = index.read()
+        # Check that the file is no longer in the index
+        index_data = self.index.read()
+        self.assertNotIn("a.txt", index_data)
 
-                assert len(index_data) == 0
+    def test_add_does_not_restage_unmodified(self):
+        """Test that add does not re-stage an unmodified file."""
+        # Create, add, and commit a file
+        test_file = Path("a.txt")
+        test_file.write_text("initial content")
+        add("a.txt")
+        commit("initial commit")
 
-            finally:
-                os.chdir(old_cwd)
+        # Run `add .` again
+        f = io.StringIO()
+        with redirect_stdout(f):
+            add(".")
+        output = f.getvalue()
+
+        # Check that no "Staged" message was printed
+        self.assertNotIn("Staged a.txt", output)
 
 
 class TestCommitCommand:

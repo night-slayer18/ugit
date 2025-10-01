@@ -68,8 +68,8 @@ class TestServeCommand:
         with tempfile.TemporaryDirectory() as temp_dir:
             os.chdir(temp_dir)  # Don't initialize - should fail
 
-            with pytest.raises(SystemExit):
-                serve()
+            result = serve(open_browser=False)
+            assert result == 1
 
 
 class TestWebServer:
