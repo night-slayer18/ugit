@@ -275,16 +275,11 @@ Content: Raw file content (bytes)
 #### Tree Object
 ```
 Type: "tree"
-Content: JSON structure
-{
-  "entries": [
-    {
-      "name": "filename.txt",
-      "sha": "blob_sha_hash",
-      "type": "blob"
-    }
-  ]
-}
+Content: JSON list of [path, sha] pairs
+[
+  ["file1.txt", "a1b2c3d4..."],
+  ["src/app.py", "e5f6g7h8..."]
+]
 ```
 
 #### Commit Object
@@ -302,11 +297,13 @@ Content: JSON structure
 
 ### Index Format
 
-Plain text file with format:
+Plain text file where each line has the format:
+`sha_hash mtime size path`
+
+**Example:**
 ```
-filename1.txt sha1_hash_of_blob
-filename2.py sha1_hash_of_blob
-directory/file.md sha1_hash_of_blob
+a1b2c3d4... 1663612800.0 123 file1.txt
+e5f6g7h8... 1663612900.0 456 src/app.py
 ```
 
 ## Design Patterns

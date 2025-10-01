@@ -118,26 +118,20 @@ Index(repo: Repository)
 
 **Methods:**
 
-###### `read() -> Dict[str, str]`
+###### `read() -> Dict[str, Tuple[str, float, int]]`
 
 Read the current index.
 
 **Returns:**
-- `Dict[str, str]`: Mapping of file paths to SHA hashes
+- `Dict[str, Tuple[str, float, int]]`: Mapping of file paths to (SHA, mtime, size) tuples.
 
-###### `write(index: Dict[str, str]) -> None`
+###### `write(index: Dict[str, Tuple[str, float, int]]) -> None`
 
 Write the index to disk.
 
-###### `add_file(path: str, sha: str) -> None`
-
-Add a file to the index.
-
-###### `remove_file(path: str) -> None`
-
-Remove a file from the index.
-
 ## Command Modules
+
+This section provides an overview of the main functions in the `ugit/commands/` directory. Note that many of these functions now raise specific exceptions from `ugit.core.exceptions` on failure.
 
 ### `ugit.commands.init`
 
@@ -145,36 +139,17 @@ Remove a file from the index.
 
 Initialize a new ugit repository.
 
-Creates the `.ugit` directory structure:
-```
-.ugit/
-├── objects/
-├── refs/
-│   └── heads/
-└── index
-```
-
 ### `ugit.commands.add`
 
 #### `add(paths: List[str]) -> None`
 
 Add files to the staging area.
 
-**Parameters:**
-- `paths` (List[str]): File paths to add
-
 ### `ugit.commands.commit`
 
-#### `commit(message: str, author: str = None) -> str`
+#### `commit(message: str, author: Optional[str] = None) -> None`
 
-Create a new commit.
-
-**Parameters:**
-- `message` (str): Commit message
-- `author` (str): Author information (optional)
-
-**Returns:**
-- `str`: SHA of the new commit
+Create a new commit. Does not return a value but prints the commit SHA to stdout.
 
 ### `ugit.commands.status`
 
@@ -182,29 +157,17 @@ Create a new commit.
 
 Display repository status.
 
-Shows:
-- Staged files
-- Modified files
-- Untracked files
-- Deleted files
-
 ### `ugit.commands.log`
 
-#### `log(max_commits: Optional[int] = None) -> None`
+#### `log(max_commits: Optional[int] = None, oneline: bool = False, graph: bool = False, since: Optional[str] = None, until: Optional[str] = None) -> None`
 
-Display commit history.
-
-**Parameters:**
-- `max_commits` (Optional[int]): Maximum commits to show
+Display commit history with various filtering and formatting options.
 
 ### `ugit.commands.checkout`
 
-#### `checkout(commit_sha: str) -> None`
+#### `checkout(target: str, create_branch: bool = False) -> None`
 
-Checkout a specific commit.
-
-**Parameters:**
-- `commit_sha` (str): SHA of commit to checkout
+Checkout a specific commit or switch to a branch.
 
 ### `ugit.commands.branch`
 
@@ -212,20 +175,11 @@ Checkout a specific commit.
 
 Manage branches.
 
-**Parameters:**
-- `name` (Optional[str]): Branch name to create
-- `list_branches` (bool): List all branches
-- `delete` (Optional[str]): Branch name to delete
-
 ### `ugit.commands.merge`
 
 #### `merge(branch_name: str, no_ff: bool = False) -> None`
 
 Merge a branch into current branch.
-
-**Parameters:**
-- `branch_name` (str): Name of branch to merge
-- `no_ff` (bool): Force creation of merge commit
 
 ### `ugit.commands.diff`
 
@@ -233,21 +187,11 @@ Merge a branch into current branch.
 
 Show differences between commits, staged changes, or working directory.
 
-**Parameters:**
-- `staged` (bool): Show staged changes vs last commit
-- `commit1` (Optional[str]): First commit to compare
-- `commit2` (Optional[str]): Second commit to compare
-
 ### `ugit.commands.reset`
 
 #### `reset(target: Optional[str] = None, hard: bool = False, soft: bool = False) -> None`
 
 Reset current HEAD to specified state.
-
-**Parameters:**
-- `target` (Optional[str]): Commit to reset to
-- `hard` (bool): Reset working directory and index
-- `soft` (bool): Reset only HEAD (keep changes)
 
 ### `ugit.commands.stash`
 
@@ -255,34 +199,9 @@ Reset current HEAD to specified state.
 
 Stash changes in working directory.
 
-**Parameters:**
-- `message` (Optional[str]): Stash message
-- `include_untracked` (bool): Include untracked files
-
 #### `stash_pop(stash_id: int = 0) -> None`
 
 Apply and remove stash.
-
-**Parameters:**
-- `stash_id` (int): Index of stash to pop
-
-#### `stash_list() -> None`
-
-List all stashes.
-
-#### `stash_apply(stash_id: int = 0) -> None`
-
-Apply stash without removing it.
-
-**Parameters:**
-- `stash_id` (int): Index of stash to apply
-
-#### `stash_drop(stash_id: int = 0) -> None`
-
-Remove stash without applying.
-
-**Parameters:**
-- `stash_id` (int): Index of stash to drop
 
 ### `ugit.commands.clone`
 
@@ -290,74 +209,41 @@ Remove stash without applying.
 
 Clone a repository.
 
-**Parameters:**
-- `url` (str): Repository URL to clone
-- `directory` (Optional[str]): Local directory name
-
 ### `ugit.commands.remote`
 
 #### `remote(args: Any) -> None`
 
 Manage remote repositories.
 
-**Parameters:**
-- `args` (Any): Parsed command arguments with subcommands (add, remove, show, list)
-
 ### `ugit.commands.fetch`
 
-#### `fetch(remote: str = "origin", branch: Optional[str] = None) -> None`
+#### `fetch(remote: str = "origin", branch: Optional[str] = None) -> int`
 
 Fetch from remote repository.
 
-**Parameters:**
-- `remote` (str): Remote name
-- `branch` (Optional[str]): Branch to fetch
-
 ### `ugit.commands.pull`
 
-#### `pull(remote: str = "origin", branch: Optional[str] = None) -> None`
+#### `pull(remote: str = "origin", branch: Optional[str] = None) -> int`
 
 Fetch and merge from remote repository.
 
-**Parameters:**
-- `remote` (str): Remote name
-- `branch` (Optional[str]): Branch to pull
-
 ### `ugit.commands.push`
 
-#### `push(remote: str = "origin", branch: Optional[str] = None, force: bool = False) -> None`
+#### `push(remote: str = "origin", branch: Optional[str] = None, force: bool = False) -> int`
 
 Push to remote repository.
 
-**Parameters:**
-- `remote` (str): Remote name
-- `branch` (Optional[str]): Branch to push
-- `force` (bool): Force push
-
 ### `ugit.commands.config`
 
-#### `config(key: Optional[str] = None, value: Optional[str] = None, list_all: bool = False) -> None`
+#### `config(key: Optional[str] = None, value: Optional[str] = None, list_all: bool = False) -> int`
 
 Manage configuration.
-
-**Parameters:**
-- `key` (Optional[str]): Configuration key
-- `value` (Optional[str]): Configuration value
-- `list_all` (bool): List all configuration
 
 ### `ugit.commands.serve`
 
 #### `serve(port: int = 8000, host: str = "127.0.0.1", open_browser: bool = True) -> Optional[int]`
 
 Start web interface server.
-
-**Parameters:**
-- `port` (int): Port to run server on
-- `host` (str): Host to bind to
-- `open_browser` (bool): Open browser automatically
-
-**Returns:**
-- `Optional[int]`: Exit code (0 for success)
 
 ## Utility Modules
 
@@ -373,7 +259,7 @@ Ensure current directory is a ugit repository.
 - `Repository`: Repository instance
 
 **Raises:**
-- `RuntimeError`: Not in a ugit repository
+- `NotInRepositoryError`: Not in a ugit repository
 
 #### `format_timestamp(timestamp: str) -> str`
 
@@ -423,68 +309,53 @@ Commits are stored as JSON with the following structure:
 
 ### Tree Object
 
-Trees represent directory structures:
+Trees are stored as a JSON list of `[path, sha]` pairs.
 
 ```json
-{
-  "entries": [
-    {
-      "name": "filename.txt",
-      "sha": "sha1_hash_of_blob",
-      "type": "blob"
-    }
-  ]
-}
+[
+  ["file1.txt", "a1b2c3d4..."],
+  ["src/app.py", "e5f6g7h8..."]
+]
 ```
 
 ### Index Format
 
-The index file contains staged files:
+The index file (`.ugit/index`) is a plain text file where each line represents a staged file in the format:
 
+`sha_hash mtime size path`
+
+**Example:**
 ```
-filename1.txt sha1_hash
-filename2.py sha1_hash
-directory/file.md sha1_hash
+a1b2c3d4... 1663612800.0 123 file1.txt
+e5f6g7h8... 1663612900.0 456 src/app.py
 ```
 
 ## Error Handling
 
-### Common Exceptions
+Commands and core functions in `ugit` raise specific exceptions on failure, all inheriting from `UgitError`.
 
-#### `RuntimeError`
+### Custom Exceptions
 
-Raised when:
-- Not in a ugit repository
-- Repository operations fail
-
-#### `FileNotFoundError`
-
-Raised when:
-- Object doesn't exist
-- Repository files missing
-
-#### `ValueError`
-
-Raised when:
-- Invalid SHA format
-- Malformed object data
-- Invalid commit data
+- **`UgitError`**: Base class for all custom errors.
+- **`NotInRepositoryError`**: Raised when a command requires a repository but is not run inside one.
+- **`BranchExistsError`**: Raised when trying to create a branch that already exists.
+- **`BranchNotFoundError`**: Raised when a specified branch cannot be found.
+- **`MergeConflictError`**: Raised when a merge results in conflicts. The exception object contains a `.conflicts` attribute with a list of conflicting file paths.
+- **`InvalidRefError`**: Raised for invalid references (e.g., a non-existent commit SHA).
+- **`NonFastForwardError`**: Raised on a rejected non-fast-forward push.
 
 ### Error Handling Example
 
 ```python
-from ugit.utils.helpers import ensure_repository
-from ugit.core.objects import get_object
+from ugit.commands import branch
+from ugit.core.exceptions import BranchExistsError, UgitError
 
 try:
-    repo = ensure_repository()
-    obj_type, data = get_object("invalid_sha")
-except RuntimeError as e:
-    print(f"Repository error: {e}")
-except ValueError as e:
-    print(f"Invalid data: {e}")
-except FileNotFoundError as e:
-    print(f"Object not found: {e}")
+    branch("existing-branch-name")
+except BranchExistsError as e:
+    print(f"Caught expected error: {e}")
+except UgitError as e:
+    print(f"A ugit error occurred: {e}")
 ```
 
 ## Usage Examples
@@ -511,12 +382,14 @@ with open("example.txt", "rb") as f:
 sha = hash_object(content, "blob", True)
 
 # Add to index
-current_index["example.txt"] = sha
+import os
+import time
+stat = os.stat("example.txt")
+current_index["example.txt"] = (sha, stat.st_mtime, stat.st_size)
 index.write(current_index)
 
 # Create commit
-commit_sha = commit("Add example.txt")
-print(f"Created commit: {commit_sha}")
+commit("Add example.txt")
 ```
 
 ### Reading Repository State

@@ -15,29 +15,31 @@ ugit implements most core features of Git with some differences:
 **Implemented Features:**
 - Repository initialization and management
 - File staging and commits with full metadata
-- Complete branching and merging system
+- Complete branching and merging system, including conflict resolution
 - Stash management (save, pop, apply, list, drop)
-- Remote repositories (clone, fetch, pull, push)
+- Remote repositories (clone, fetch, pull, push for local protocols)
 - Comprehensive diff and history viewing
+- `.ugitignore` support for ignoring files
 - Configuration system
 - Beautiful web interface for repository browsing
 
 **Key Differences:**
 - Uses `.ugit` directory instead of `.git`
-- Simplified object storage format
-- No sub-modules or advanced Git features
+- Simplified object storage format (JSON and zlib compression)
+- Remote operations currently limited to local file system protocols
+- No sub-modules or other advanced Git features
 - Educational focus with clear, readable code
 
 ### Is ugit compatible with Git?
 
-No, ugit uses its own storage format (`.ugit` directory) and is not compatible with Git repositories. However, ugit provides similar functionality and workflow patterns, making it easy to transition between the two systems.
+No, ugit uses its own storage format (`.ugit` directory) and is not directly compatible with Git repositories. However, ugit provides similar functionality and workflow patterns, making it easy to transition between the two systems.
 
 ### Can I use ugit for real projects?
 
 ugit is suitable for:
 - ✅ Small to medium projects
 - ✅ Learning version control concepts
-- ✅ Team collaboration with remote repositories
+- ✅ Team collaboration with remote repositories on a shared file system
 - ✅ Personal and educational projects
 - ✅ Projects requiring web-based repository browsing
 - ⚠️ Large codebases (limited performance optimization)
@@ -116,10 +118,15 @@ ugit log --max-count 5
 
 ### Can I undo a commit?
 
-ugit doesn't have built-in commit undoing. You can:
-1. Checkout a previous commit: `ugit checkout <commit-sha>`
-2. Make new changes and commit them
-3. This effectively creates a new state without deleting history
+ugit has a `reset` command for this.
+
+```bash
+# Go back to a previous commit, but keep the changes in your files
+ugit reset <commit-sha>
+
+# Go back to a previous commit and discard all changes since then
+ugit reset --hard <commit-sha>
+```
 
 ## Branching and Merging
 
@@ -188,7 +195,7 @@ ugit stash pop 1
 # Apply stash without removing it
 ugit stash apply
 
-# Remove stash without applying
+# Remove a stash without applying
 ugit stash drop
 ```
 
@@ -197,11 +204,11 @@ ugit stash drop
 ### How do I work with remote repositories?
 
 ```bash
-# Clone a repository
-ugit clone https://github.com/user/repo.git
+# Clone a repository from a local path
+ugit clone /path/to/remote/repo
 
 # Add a remote to existing repository
-ugit remote add origin https://github.com/user/repo.git
+ugit remote add origin /path/to/remote/repo
 
 # List remotes
 ugit remote -v
@@ -223,10 +230,7 @@ ugit push origin main
 
 ### Can I use ugit with GitHub/GitLab?
 
-Yes! ugit supports standard Git protocols for remote operations:
-- Clone repositories from GitHub, GitLab, etc.
-- Push and pull changes
-- Work with team members using the same remote repository
+No. `ugit`'s remote commands currently only support local file system paths (e.g., cloning from another folder on your computer). It does not support network protocols like HTTP or SSH, so it cannot interact with services like GitHub or GitLab.
 
 ## Web Interface
 
@@ -273,19 +277,18 @@ ugit checkout abc123def456789
 ### How do I get back to the latest version?
 
 ```bash
-# Find the latest commit SHA from log
-ugit log --max-count 1
-
-# Checkout the latest commit
-ugit checkout <latest-commit-sha>
+# Checkout the main branch to return to the latest version
+ugit checkout main
 ```
 
 ### Can I see what changed in a specific commit?
 
-ugit doesn't have a built-in diff command. You can:
-1. Checkout the commit
-2. Look at the files
-3. Compare manually with previous versions
+Yes, you can use `ugit diff` to compare a commit with its parent.
+
+```bash
+# Show changes from a specific commit
+ugit diff <commit-sha>~1 <commit-sha>
+```
 
 ### How do I add all files at once?
 
@@ -356,13 +359,26 @@ Consider using Git for large projects.
 
 ### How do I ignore files?
 
-ugit doesn't have built-in ignore functionality. Manually avoid adding files you don't want to track.
+Create a `.ugitignore` file in the root of your repository. Add file names, directory names, or patterns to this file, and `ugit` will ignore them.
+
+**Example `.ugitignore`:**
+```
+# Ignore python cache
+__pycache__/
+
+# Ignore log files
+*.log
+
+# Ignore specific directory
+build/
+```
 
 ### Can I remove files from tracking?
 
 ugit doesn't have a built-in `rm` command. To stop tracking a file:
 1. Remove it from your working directory
-2. The next commit won't include it
+2. Run `ugit add .` to stage the deletion
+3. The next commit won't include the file.
 
 ### What's the maximum file size ugit can handle?
 
@@ -419,11 +435,11 @@ Yes! See our [Developer Guide](developer-guide.md) for:
 
 ### Why isn't feature X implemented?
 
-ugit focuses on core version control features. Some Git features are intentionally omitted:
-- Branches and merging (complexity)
-- Remote repositories (network code)
-- Rebasing (advanced workflow)
-- Patches (specialized use case)
+ugit focuses on core version control features. Some advanced Git features are intentionally omitted to maintain simplicity, such as:
+- Rebasing
+- Submodules
+- Git hooks
+- Complex network protocols (only local file system remotes are supported)
 
 ## Comparison with Git
 
@@ -436,7 +452,7 @@ ugit focuses on core version control features. Some Git features are intentional
 - When you need minimal overhead
 
 **Use Git for**:
-- Team collaboration
+- Team collaboration over a network
 - Large projects
 - Open source development
 - Production environments

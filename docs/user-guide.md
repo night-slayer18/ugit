@@ -209,9 +209,11 @@ ugit add src/module.py
 # Add all files
 ugit add .
 
-# Add all Python files
+# Add all Python files (using shell globbing)
 ugit add *.py
 ```
+
+*Note: Using wildcards like `*.py` is a feature of your shell (like Bash or Zsh), which expands the command before `ugit` receives it. `ugit` itself receives a list of files.*
 
 ### Checking File Status
 
@@ -529,8 +531,8 @@ ugit diff --staged
 # Compare two commits
 ugit diff abc123 def456
 
-# Compare with previous commit
-ugit diff HEAD~1
+# Compare a commit with its parent
+ugit diff abc123~1 abc123
 ```
 
 ### Reset Operations
