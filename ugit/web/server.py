@@ -58,6 +58,15 @@ class UgitWebServer:
         async def list_files(path: str = "", commit: str = "HEAD") -> Any:
             """List files and directories from the committed tree (repository view)"""
             try:
+                # Check if it's a ugit repository
+                if not os.path.exists(os.path.join(self.repo_path, ".ugit")):
+                    return {
+                        "files": [],
+                        "commit": None,
+                        "path": path,
+                        "error": "Not a ugit repository",
+                    }
+
                 # Get the current commit SHA
                 if commit == "HEAD":
                     try:
@@ -140,11 +149,17 @@ class UgitWebServer:
                             except Exception:
                                 file_type = "blob"
 
+                            # Get file extension
+                            file_extension = ""
+                            if "." in file_name:
+                                file_extension = file_name.split(".")[-1].lower()
+
                             file_info = {
                                 "name": file_name,
                                 "type": file_type,
                                 "sha": file_sha,
                                 "size": None,
+                                "extension": file_extension,
                             }
 
                             # Get size for blob files
@@ -188,6 +203,7 @@ class UgitWebServer:
                                     "type": "tree",
                                     "sha": None,  # Virtual directory
                                     "size": None,
+                                    "extension": "",  # Directories don't have extensions
                                 }
 
                                 # Find the most recent commit that modified any file in this directory
@@ -327,8 +343,8 @@ class UgitWebServer:
                         status_code=404, detail=f"Error reading file: {e}"
                     )
 
-                # Check if file is binary
-                is_binary = b"\x00" in file_data[:1024]
+                # Check if file is binary using enhanced detection
+                is_binary = self._is_binary_data(file_data)
 
                 if is_binary:
                     return {
@@ -549,6 +565,172 @@ class UgitWebServer:
 
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/file-stats")
+        async def get_file_stats(path: str, commit: str = "HEAD") -> Any:
+            """Get detailed statistics for a file"""
+            try:
+                file_data = await get_file_content(path, commit)
+
+                if file_data.get("type") == "text" and file_data.get("content"):
+                    content = file_data["content"]
+                    lines = content.split("\n")
+
+                    stats = {
+                        "path": path,
+                        "size": file_data["size"],
+                        "lines": len(lines),
+                        "words": sum(len(line.split()) for line in lines),
+                        "characters": len(content),
+                        "language": self._get_language_from_filename(path),
+                    }
+                    return stats
+                else:
+                    return {
+                        "path": path,
+                        "size": file_data["size"],
+                        "lines": 0,
+                        "words": 0,
+                        "characters": 0,
+                        "language": "binary",
+                    }
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/repo-info")
+        async def get_repo_info() -> Any:
+            """Get general repository information"""
+            try:
+                # Get branch information
+                branches = []
+                heads_dir = os.path.join(self.repo_path, ".ugit", "refs", "heads")
+                if os.path.exists(heads_dir):
+                    for root, dirs, files in os.walk(heads_dir):
+                        for file in files:
+                            branch_path = os.path.relpath(
+                                os.path.join(root, file), heads_dir
+                            )
+                            branches.append(branch_path.replace(os.sep, "/"))
+
+                # Get current branch
+                current_branch = None
+                try:
+                    with open(os.path.join(self.repo_path, ".ugit", "HEAD"), "r") as f:
+                        head_ref = f.read().strip()
+                        if head_ref.startswith("ref: refs/heads/"):
+                            current_branch = head_ref[16:]
+                except (FileNotFoundError, OSError) as e:
+                    # HEAD not present or unreadable; leave current_branch as None
+                    sys.stderr.write(
+                        f"Warning: unable to read HEAD for repo {self.repo_path}: {e}\n"
+                    )
+
+                # Check if repository has commits
+                has_commits = False
+                try:
+                    commit_data = await get_latest_commit()
+                    has_commits = bool(
+                        commit_data and commit_data.get("commit") is not None
+                    )
+                except HTTPException:
+                    # If the latest-commit endpoint raised a 4xx/5xx, assume no commits
+                    has_commits = False
+                except Exception as e:
+                    # Log unexpected errors but continue
+                    sys.stderr.write(
+                        f"Error checking latest commit for repo {self.repo_path}: {e}\n"
+                    )
+                    has_commits = False
+
+                return {
+                    "name": os.path.basename(self.repo_path),
+                    "path": self.repo_path,
+                    "branches": branches,
+                    "current_branch": current_branch,
+                    "has_commits": has_commits,
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/search")
+        async def search_files(query: str, path: str = "", commit: str = "HEAD") -> Any:
+            """Search for files by name"""
+            try:
+                files_data = await list_files(path, commit)
+                matching_files = [
+                    file
+                    for file in files_data.get("files", [])
+                    if query.lower() in file["name"].lower()
+                ]
+
+                return {
+                    "query": query,
+                    "results": matching_files,
+                    "total": len(matching_files),
+                    "path": path,
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+    def _is_binary_data(self, data: bytes) -> bool:
+        """More robust binary file detection"""
+        if not data:
+            return False
+
+        # Check for null bytes in first 8KB
+        if b"\x00" in data[:8192]:
+            return True
+
+        # Check for common binary file signatures
+        binary_signatures = [
+            b"\x89PNG",
+            b"\xff\xd8\xff",
+            b"GIF",
+            b"%PDF",
+            b"PK\x03\x04",
+            b"\xca\xfe\xba\xbe",
+            b"\xfe\xed\xfa",
+            b"MZ",
+        ]
+
+        for signature in binary_signatures:
+            if data.startswith(signature):
+                return True
+
+        # Try to decode as text
+        try:
+            data.decode("utf-8")
+            return False
+        except UnicodeDecodeError:
+            return True
+
+    def _get_language_from_filename(self, filename: str) -> str:
+        """Map filename to programming language"""
+        ext = os.path.splitext(filename)[1].lower().lstrip(".")
+        language_map = {
+            "py": "python",
+            "js": "javascript",
+            "ts": "typescript",
+            "java": "java",
+            "cpp": "cpp",
+            "c": "c",
+            "html": "html",
+            "css": "css",
+            "md": "markdown",
+            "json": "json",
+            "yml": "yaml",
+            "yaml": "yaml",
+            "xml": "xml",
+            "php": "php",
+            "rb": "ruby",
+            "go": "go",
+            "rs": "rust",
+            "sh": "shell",
+            "bash": "shell",
+            "zsh": "shell",
+        }
+        return language_map.get(ext, "text")
 
     def _get_last_commit_for_directory(
         self, dir_path: str, current_commit_sha: str
