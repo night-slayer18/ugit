@@ -12,7 +12,7 @@ from typing import Dict, Optional, Set
 try:
     import httpx
 except ImportError:
-    httpx = None
+    httpx = None  # type: ignore[assignment]
 
 from ..core.exceptions import RemoteNotFoundError, UgitError
 from ..core.objects import hash_object

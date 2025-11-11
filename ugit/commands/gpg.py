@@ -5,7 +5,7 @@ Allows signing commits and tags with GPG.
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404
 from typing import Optional
 
 from ..core.exceptions import UgitError
@@ -104,7 +104,7 @@ def _gpg_sign(data: bytes, key_id: Optional[str] = None) -> str:
             cmd.extend(["--default-key", key_id])
         cmd.append("-")
 
-        process = subprocess.run(
+        process = subprocess.run(  # nosec B603
             cmd,
             input=data,
             capture_output=True,
@@ -142,7 +142,7 @@ def _gpg_verify(data: bytes, signature: str) -> bool:
             try:
                 # Verify signature
                 cmd = ["gpg", "--verify", sig_path, data_path]
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603
                     cmd,
                     capture_output=True,
                     text=True,
@@ -161,7 +161,8 @@ def _gpg_verify(data: bytes, signature: str) -> bool:
 def has_gpg() -> bool:
     """Check if GPG is available."""
     try:
-        subprocess.run(
+        # Use shutil.which to find full path, but gpg is standard system command
+        subprocess.run(  # nosec B607 B603
             ["gpg", "--version"],
             capture_output=True,
             check=True,

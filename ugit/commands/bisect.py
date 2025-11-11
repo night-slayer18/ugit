@@ -60,6 +60,8 @@ def _start_bisect(
     if bad:
         if not validate_sha(bad):
             bad_sha = repo.get_head_ref()
+            if not bad_sha:
+                raise UgitError("No commits in repository")
         else:
             bad_sha = bad
         _mark_commit(repo, bad_sha, "bad")
@@ -78,6 +80,8 @@ def _start_bisect(
                 except ValueError:
                     break
             good_sha = current
+            if not good_sha:
+                raise UgitError("No commits in repository")
         else:
             good_sha = good
         _mark_commit(repo, good_sha, "good")
@@ -88,9 +92,10 @@ def _start_bisect(
 def _mark_commit(repo: Repository, commit: str, status: str) -> None:
     """Mark a commit as good or bad."""
     if not validate_sha(commit):
-        commit = repo.get_head_ref()
-        if not commit:
+        head_ref = repo.get_head_ref()
+        if not head_ref:
             raise UgitError("No commits in repository")
+        commit = head_ref
 
     bisect_dir = os.path.join(repo.ugit_dir, "BISECT")
     os.makedirs(bisect_dir, exist_ok=True)
@@ -177,7 +182,11 @@ def _find_midpoint(
         commits.append(current)
         try:
             commit_data = get_commit_data(current, repo=repo)
-            current = commit_data.get("parent")
+            parent = commit_data.get("parent")
+            if parent is not None:
+                current = parent
+            else:
+                break
         except ValueError:
             break
 

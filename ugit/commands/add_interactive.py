@@ -104,7 +104,7 @@ def _interactive_select(
     print("\nInteractive staging:")
     print("=" * 60)
 
-    selected = set()
+    selected: Set[str] = set()
     i = 1
 
     # Show files with numbers

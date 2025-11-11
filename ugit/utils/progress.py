@@ -5,7 +5,7 @@ Provides progress bars and indicators for long-running operations.
 """
 
 import sys
-from typing import Optional
+from typing import Any, Iterator, Optional
 
 
 class ProgressBar:
@@ -63,8 +63,8 @@ class ProgressBar:
 
 
 def show_progress(
-    iterable, description: str = "Processing", total: Optional[int] = None
-):
+    iterable: Any, description: str = "Processing", total: Optional[int] = None
+) -> Iterator[Any]:
     """
     Show progress while iterating.
 

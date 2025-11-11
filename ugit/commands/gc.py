@@ -131,7 +131,7 @@ def _find_reachable_objects(repo: Repository) -> Set[str]:
 
 def _find_all_objects(repo: Repository) -> Set[str]:
     """Find all objects in the repository."""
-    objects = set()
+    objects: Set[str] = set()
     objects_dir = os.path.join(repo.ugit_dir, "objects")
 
     if not os.path.exists(objects_dir):

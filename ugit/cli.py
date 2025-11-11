@@ -563,7 +563,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             if args.unpack:
                 pack.unpack_objects(args.unpack)
             else:
-                pack.pack_objects(args.objects if args.objects else None)
+                obj_list: Optional[List[str]] = args.objects if args.objects else None
+                pack.pack_objects(obj_list)
         elif args.command == "worktree":
             worktree(args.worktree_command, args.path, args.branch, args.list_worktrees)
         elif args.command == "gpg":

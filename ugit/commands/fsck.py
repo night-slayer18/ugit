@@ -119,7 +119,10 @@ def _check_commit_chain(repo: Repository, commit_sha: str, errors: List[str]) ->
             if parent and not validate_sha(parent):
                 errors.append(f"Commit {current[:7]} has invalid parent SHA: {parent}")
 
-            current = parent
+            if parent is not None:
+                current = parent
+            else:
+                break
         except ValueError as e:
             errors.append(f"Invalid commit {current[:7]}: {e}")
             break

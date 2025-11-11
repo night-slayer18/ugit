@@ -107,6 +107,10 @@ def _create_zip_archive(source_dir: str, output_path: str) -> None:
 
 def _create_tar_archive(source_dir: str, output_path: str) -> None:
     """Create a TAR archive."""
-    mode = "w:gz" if output_path.endswith(".gz") else "w"
-    with tarfile.open(output_path, mode) as tar:
+    if output_path.endswith(".gz"):
+        mode = "w:gz"
+    else:
+        mode = "w"
+    # tarfile.open has complex overloads, use type: ignore for mode parameter
+    with tarfile.open(output_path, mode=mode) as tar:  # type: ignore[call-overload]
         tar.add(source_dir, arcname=".", recursive=True)

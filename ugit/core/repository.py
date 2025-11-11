@@ -102,7 +102,8 @@ class Index:
         # Check cache first
         cached = self._cache.get(self._cache_key)
         if cached is not None:
-            return cached
+            # Type assertion: cache returns the same type we store
+            return cached  # type: ignore[no-any-return]
 
         index = {}
         if os.path.exists(self.index_path):

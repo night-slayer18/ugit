@@ -261,6 +261,7 @@ def get_tag_commit(repo: Repository, tag_name: str) -> str:
         if tag_type != "tag":
             raise UgitError(f"Tag '{tag_name}' points to invalid object")
         tag_obj = json.loads(tag_data.decode())
-        return tag_obj["object"]
+        result: str = tag_obj["object"]
+        return result
     except (ValueError, KeyError, FileNotFoundError) as e:
         raise UgitError(f"Invalid tag object for '{tag_name}': {e}")

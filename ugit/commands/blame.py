@@ -5,7 +5,7 @@ Shows who last modified each line of a file.
 """
 
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from ..core.exceptions import InvalidRefError, UgitError
 from ..core.objects import get_object
@@ -78,7 +78,7 @@ def _get_blame_data(
 
     # For each line, find when it was last modified
     blame_data = []
-    visited_commits = set()
+    visited_commits: Set[str] = set()
 
     for line_num, line_content in enumerate(lines, 1):
         commit_sha_for_line, author = _find_line_origin(
@@ -144,18 +144,16 @@ def _find_line_origin(
                 return (current_sha, author)
 
         except (ValueError, FileNotFoundError, KeyError):
-            break
-
-        # Move to parent
-        try:
-            commit_data = get_commit_data(current_sha, repo=repo)
-            parent = commit_data.get("parent")
-            if parent and parent not in visited:
-                current_sha = parent
-                visited.add(current_sha)
-            else:
-                break
-        except (ValueError, KeyError):
+            # Move to parent on error
+            try:
+                commit_data = get_commit_data(current_sha, repo=repo)
+                parent = commit_data.get("parent")
+                if parent and parent not in visited:
+                    current_sha = parent
+                    visited.add(current_sha)
+                    continue
+            except (ValueError, KeyError):
+                pass
             break
 
     # Fallback to current commit

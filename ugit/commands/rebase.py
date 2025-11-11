@@ -96,7 +96,11 @@ def _find_common_ancestor(
             return current
         try:
             commit_data = get_commit_data(current, repo=repo)
-            current = commit_data.get("parent")
+            parent = commit_data.get("parent")
+            if parent is not None:
+                current = parent
+            else:
+                break
         except ValueError:
             break
 
@@ -112,7 +116,11 @@ def _get_all_ancestors(repo: Repository, commit_sha: str) -> set:
         ancestors.add(current)
         try:
             commit_data = get_commit_data(current, repo=repo)
-            current = commit_data.get("parent")
+            parent = commit_data.get("parent")
+            if parent is not None:
+                current = parent
+            else:
+                break
         except ValueError:
             break
 
@@ -130,7 +138,11 @@ def _get_commits_between(repo: Repository, ancestor: str, descendant: str) -> Li
         commits.append(current)
         try:
             commit_data = get_commit_data(current, repo=repo)
-            current = commit_data.get("parent")
+            parent = commit_data.get("parent")
+            if parent is not None:
+                current = parent
+            else:
+                break
         except ValueError:
             break
 

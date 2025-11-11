@@ -79,6 +79,7 @@ jobs:
     - name: Security check with bandit
       run: |
         bandit -r ugit/ -f json -o bandit-report.json
+        bandit -r ugit/ -ll -i
         
     - name: Dependency security check with pip-audit
       run: |

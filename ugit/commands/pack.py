@@ -15,7 +15,9 @@ from ..core.repository import Repository
 from ..utils.helpers import ensure_repository
 
 
-def pack_objects(sha_list: List[str] = None, repo: Optional[Repository] = None) -> str:
+def pack_objects(
+    sha_list: Optional[List[str]] = None, repo: Optional[Repository] = None
+) -> str:
     """
     Create a pack file from objects.
 
@@ -32,6 +34,9 @@ def pack_objects(sha_list: List[str] = None, repo: Optional[Repository] = None) 
     if sha_list is None:
         # Pack all objects
         sha_list = _get_all_objects(repo)
+    else:
+        # sha_list is already set, use it
+        pass
 
     if not sha_list:
         raise UgitError("No objects to pack")
@@ -99,7 +104,7 @@ def unpack_objects(pack_file: str, repo: Optional[Repository] = None) -> int:
 
 def _get_all_objects(repo: Repository) -> List[str]:
     """Get all object SHAs in repository."""
-    objects = []
+    objects: List[str] = []
     objects_dir = os.path.join(repo.ugit_dir, "objects")
 
     if not os.path.exists(objects_dir):

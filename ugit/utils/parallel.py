@@ -33,5 +33,9 @@ def process_parallel(
                 results.append(future.result())
             except Exception as e:
                 # Continue processing other items even if one fails
-                pass
+                # Log error but don't fail entire operation
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error processing item in parallel: {e}")
         return results

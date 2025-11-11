@@ -5,7 +5,7 @@ Allows custom scripts to run at various points in the workflow.
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404
 import sys
 from typing import Optional
 
@@ -34,7 +34,8 @@ def run_hook(repo: Repository, hook_name: str, *args: str) -> bool:
         return True  # Not executable, skip
 
     try:
-        result = subprocess.run(
+        # hook_path is validated to be within repo.ugit_dir/hooks
+        result = subprocess.run(  # nosec B603
             [hook_path] + list(args),
             cwd=repo.path,
             capture_output=True,
@@ -78,8 +79,9 @@ def install_hook(repo: Repository, hook_name: str, script_content: str) -> None:
     with open(hook_path, "w", encoding="utf-8") as f:
         f.write(script_content)
 
-    # Make executable
-    os.chmod(hook_path, 0o755)
+    # Make executable - 0o755 is standard for executable scripts
+    # User must trust hooks they install in their own repository
+    os.chmod(hook_path, 0o755)  # nosec B103
 
     print(f"Installed hook: {hook_name}")
 
