@@ -97,8 +97,10 @@ def get_object(sha: str, repo: Optional["Repository"] = None) -> Tuple[str, byte
     if repo is None:
         repo = Repository()
 
-    if len(sha) != 40:
-        raise ValueError(f"Invalid SHA length: {len(sha)}")
+    from ..utils.validation import validate_sha
+
+    if not validate_sha(sha):
+        raise ValueError(f"Invalid SHA format: {sha}")
 
     # Try both old flat structure and new hierarchical structure
     object_paths = [
@@ -138,13 +140,23 @@ def get_object(sha: str, repo: Optional["Repository"] = None) -> Tuple[str, byte
 
 
 def object_exists(sha: str, repo: Optional["Repository"] = None) -> bool:
-    """Check if an object exists in the object store."""
+    """
+    Check if an object exists in the object store.
+
+    Args:
+        sha: SHA-1 hash to check
+        repo: Repository instance (optional, defaults to current repo)
+
+    Returns:
+        True if object exists
+    """
+    from ..utils.validation import validate_sha
     from .repository import Repository
 
     if repo is None:
         repo = Repository()
 
-    if len(sha) != 40:
+    if not validate_sha(sha):
         return False
 
     # Check both old and new formats

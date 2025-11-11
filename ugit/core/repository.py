@@ -9,6 +9,8 @@ import os
 import sys
 from typing import Dict, Optional, Tuple
 
+from ..utils.atomic import atomic_write_text
+
 
 class Repository:
     """Represents a ugit repository."""
@@ -54,14 +56,22 @@ class Repository:
             return None
 
     def set_head_ref(self, sha: str, branch: str = "main") -> None:
-        """Set the HEAD reference to a commit SHA."""
+        """
+        Set the HEAD reference to a commit SHA.
+
+        Args:
+            sha: Commit SHA to set
+            branch: Branch name (default: "main")
+
+        Raises:
+            RuntimeError: If setting the reference fails
+        """
         branch_dir = os.path.join(self.ugit_dir, "refs", "heads")
         os.makedirs(branch_dir, exist_ok=True)
 
         branch_path = os.path.join(branch_dir, branch)
         try:
-            with open(branch_path, "w", encoding="utf-8") as f:
-                f.write(sha)
+            atomic_write_text(branch_path, sha, create_dirs=True)
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to set HEAD reference: {e}")
 
@@ -125,17 +135,21 @@ class Index:
 
     def write(self, index: Dict[str, Tuple[str, float, int]]) -> None:
         """
-        Write index to disk from the new format.
+        Write index to disk using atomic write operation.
 
         Args:
             index: Dictionary mapping file paths to (SHA, mtime, size) tuples.
+
+        Raises:
+            RuntimeError: If writing the index fails
         """
         try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
+            # Build index content
+            lines = []
+            for path, (sha, mtime, size) in sorted(index.items()):
+                lines.append(f"{sha} {mtime} {size} {path}\n")
 
-            with open(self.index_path, "w", encoding="utf-8") as f:
-                for path, (sha, mtime, size) in sorted(index.items()):
-                    f.write(f"{sha} {mtime} {size} {path}\n")
+            content = "".join(lines)
+            atomic_write_text(self.index_path, content, create_dirs=True)
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to write index: {e}")

@@ -9,7 +9,9 @@ from typing import Optional
 
 from ..core.exceptions import BranchExistsError, BranchNotFoundError
 from ..core.repository import Repository
+from ..utils.atomic import atomic_write_text
 from ..utils.helpers import ensure_repository, get_current_branch_name
+from ..utils.validation import validate_branch_name
 
 
 def branch(
@@ -54,8 +56,18 @@ def _list_branches(repo: Repository) -> None:
 
 
 def _create_branch(repo: Repository, branch_name: str) -> None:
-    """Create a new branch."""
-    if not _is_valid_branch_name(branch_name):
+    """
+    Create a new branch.
+
+    Args:
+        repo: Repository instance
+        branch_name: Name of the branch to create
+
+    Raises:
+        ValueError: If branch name is invalid or no commits exist
+        BranchExistsError: If branch already exists
+    """
+    if not validate_branch_name(branch_name):
         raise ValueError(f"Invalid branch name: '{branch_name}'")
 
     branch_path = os.path.join(repo.ugit_dir, "refs", "heads", branch_name)
@@ -67,8 +79,7 @@ def _create_branch(repo: Repository, branch_name: str) -> None:
         raise ValueError("No commits yet - cannot create branch")
 
     os.makedirs(os.path.dirname(branch_path), exist_ok=True)
-    with open(branch_path, "w", encoding="utf-8") as f:
-        f.write(current_commit)
+    atomic_write_text(branch_path, current_commit, create_dirs=True)
     print(f"Created branch '{branch_name}'")
 
 
@@ -89,18 +100,17 @@ def _delete_branch(repo: Repository, branch_name: str) -> None:
 
 
 def _is_valid_branch_name(name: str) -> bool:
-    """Check if branch name is valid."""
-    if not name or name.strip() != name:
-        return False
+    """
+    Check if branch name is valid.
 
-    # Basic validation - no spaces, no special characters that cause issues
-    invalid_chars = [" ", "\t", "\n", "..", "~", "^", ":", "?", "*", "[", "\\]"]
-    for char in invalid_chars:
-        if char in name:
-            return False
+    Args:
+        name: Branch name to validate
 
-    # Cannot start with . or -
-    if name.startswith(".") or name.startswith("-"):
-        return False
+    Returns:
+        True if valid branch name
 
-    return True
+    Note:
+        This function is kept for backward compatibility.
+        New code should use validate_branch_name from utils.validation.
+    """
+    return validate_branch_name(name)

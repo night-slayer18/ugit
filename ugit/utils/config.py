@@ -4,6 +4,8 @@ import configparser
 import os
 from typing import Optional
 
+from .atomic import atomic_write_text
+
 
 class Config:
     """Manages ugit configuration."""
@@ -39,13 +41,24 @@ class Config:
         self._save()
 
     def _save(self) -> None:
-        """Save configuration to file."""
-        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+        """
+        Save configuration to file using atomic write.
+
+        Raises:
+            OSError: If saving fails
+        """
         try:
-            with open(self.config_path, "w") as f:
-                self._config.write(f)
-        except (IOError, OSError):
-            pass  # Fail silently
+            # Write config to string buffer first
+            import io
+
+            buffer = io.StringIO()
+            self._config.write(buffer)
+            content = buffer.getvalue()
+
+            # Atomically write to file
+            atomic_write_text(self.config_path, content, create_dirs=True)
+        except (IOError, OSError) as e:
+            raise OSError(f"Failed to save configuration: {e}")
 
     def get_user_name(self) -> str:
         """Get configured user name."""

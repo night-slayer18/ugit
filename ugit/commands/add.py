@@ -6,6 +6,7 @@ import os
 import sys
 from typing import Dict, List, Tuple, Union
 
+from ..core.exceptions import UgitError
 from ..core.objects import hash_object
 from ..core.repository import Index
 from ..utils.helpers import (
@@ -14,12 +15,19 @@ from ..utils.helpers import (
     safe_read_file,
     should_ignore_file,
 )
+from ..utils.validation import sanitize_path, validate_path
 
 
 def add(paths: Union[str, List[str]]) -> None:
     """
     Add file(s) to the staging area. This function reads the index once,
     updates it in memory, and writes it back once at the end.
+
+    Args:
+        paths: File or directory paths to add (string or list of strings)
+
+    Raises:
+        UgitError: If path validation fails
     """
     repo = ensure_repository()
     index = Index(repo)
@@ -29,11 +37,24 @@ def add(paths: Union[str, List[str]]) -> None:
     if isinstance(paths, str):
         paths = [paths]
 
+    # Validate all paths before processing
+    validated_paths = []
+    for path in paths:
+        try:
+            # Sanitize and validate path
+            sanitized = sanitize_path(path)
+            if validate_path(sanitized, base_path=repo.path):
+                validated_paths.append(sanitized)
+            else:
+                raise UgitError(f"Invalid or unsafe path: {path}")
+        except ValueError as e:
+            raise UgitError(f"Invalid path '{path}': {e}") from e
+
     # Track if any changes are made to the index and collect messages for user
     changes_made = False
     messages: List[str] = []
 
-    for file_path in paths:
+    for file_path in validated_paths:
         if _add_single_path(file_path, index_data, ignored_patterns, messages):
             changes_made = True
 

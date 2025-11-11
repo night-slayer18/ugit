@@ -4,7 +4,7 @@ Show repository status.
 
 import json
 import os
-from typing import List, Set
+from typing import Dict, List, Set
 
 from ..core.objects import get_object, hash_object
 from ..core.repository import Index
@@ -50,8 +50,16 @@ def status() -> None:
         print("Nothing to commit, working tree clean")
 
 
-def _get_committed_files(head_sha: str) -> dict:
-    """Get files from the current HEAD commit."""
+def _get_committed_files(head_sha: str) -> Dict[str, str]:
+    """
+    Get files from the current HEAD commit.
+
+    Args:
+        head_sha: SHA of the HEAD commit
+
+    Returns:
+        Dictionary mapping file paths to their SHA hashes
+    """
     try:
         type_, data = get_object(head_sha)
         if type_ != "commit":
@@ -70,7 +78,9 @@ def _get_committed_files(head_sha: str) -> dict:
         return {}
 
 
-def _get_staged_files(index_data: dict, committed_files: dict) -> List[str]:
+def _get_staged_files(
+    index_data: Dict[str, tuple], committed_files: Dict[str, str]
+) -> List[str]:
     """Get list of files staged for commit."""
     staged = []
     for path, (sha, _, _) in index_data.items():
@@ -81,7 +91,7 @@ def _get_staged_files(index_data: dict, committed_files: dict) -> List[str]:
     return staged
 
 
-def _get_modified_files(index_data: dict) -> List[str]:
+def _get_modified_files(index_data: Dict[str, tuple]) -> List[str]:
     """Get list of tracked files that have been modified."""
     modified = []
     for path, (stored_sha, stored_mtime, stored_size) in index_data.items():
