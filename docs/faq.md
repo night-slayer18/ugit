@@ -14,21 +14,42 @@ ugit implements most core features of Git with some differences:
 
 **Implemented Features:**
 - Repository initialization and management
-- File staging and commits with full metadata
+- File staging and commits with full metadata (with interactive staging)
 - Complete branching and merging system, including conflict resolution
+- Advanced merge features (squash merge, merge strategies)
 - Stash management (save, pop, apply, list, drop)
 - Remote repositories (clone, fetch, pull, push for local protocols)
+- HTTP/HTTPS remote support (experimental)
 - Comprehensive diff and history viewing
 - `.ugitignore` support for ignoring files
 - Configuration system
 - Beautiful web interface for repository browsing
+- **Tags** - Lightweight and annotated tags
+- **Reflog** - Complete history tracking for recovery
+- **Blame** - Line-by-line authorship tracking
+- **Cherry-pick** - Apply commits from other branches
+- **Grep** - Search across repository
+- **Archive** - Create tar/zip archives
+- **Aliases** - Custom command shortcuts
+- **Stats** - Repository statistics
+- **Bisect** - Binary search for bugs
+- **Rebase** - Reapply commits
+- **Garbage Collection** - Clean up unreachable objects
+- **Fsck** - Repository integrity checks
+- **Worktree** - Multiple working directories
+- **Hooks** - Pre-commit and post-commit hooks
+- **Shallow Clone** - Limited history cloning
+- **GPG Signing** - Sign commits and tags
+- **Pack Files** - Efficient object storage
+- **Delta Compression** - Storage optimization
 
 **Key Differences:**
 - Uses `.ugit` directory instead of `.git`
 - Simplified object storage format (JSON and zlib compression)
-- Remote operations currently limited to local file system protocols
-- No sub-modules or other advanced Git features
+- Remote operations support local file system and HTTP/HTTPS (experimental)
+- Some advanced Git features not yet implemented (submodules, LFS)
 - Educational focus with clear, readable code
+- Pack files and delta compression available for optimization
 
 ### Is ugit compatible with Git?
 

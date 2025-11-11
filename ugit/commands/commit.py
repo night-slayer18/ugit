@@ -11,18 +11,40 @@ from typing import Optional
 from ..core.objects import hash_object
 from ..core.repository import Index, Repository
 from ..utils.config import Config
-from ..utils.helpers import ensure_repository
+from ..utils.helpers import ensure_repository, get_current_branch_name
+from .commit_template import get_commit_template
+from .hooks import run_hook
+from .reflog import append_reflog
 
 
-def commit(message: str, author: Optional[str] = None) -> None:
+def commit(message: Optional[str] = None, author: Optional[str] = None) -> None:
     """
     Create a commit from staged changes.
 
     Args:
-        message: Commit message
+        message: Commit message (if None, will use template or prompt)
         author: Author information (uses config if not provided)
     """
     repo = ensure_repository()
+
+    # Get commit message from template if not provided
+    if not message:
+        template = get_commit_template(repo)
+        if template:
+            print("Commit message template:")
+            print(template)
+            print("\n" + "=" * 60)
+            message = input(
+                "Enter commit message (or press Enter to use template): "
+            ).strip()
+            if not message:
+                message = template.strip()
+        else:
+            message = input("Enter commit message: ").strip()
+
+    if not message:
+        print("Aborting commit - no message provided")
+        return
 
     if not message.strip():
         print("Error: Commit message cannot be empty")
@@ -54,8 +76,23 @@ def commit(message: str, author: Optional[str] = None) -> None:
     commit_bytes = json.dumps(commit_data, indent=2).encode()
     commit_sha = hash_object(commit_bytes, "commit")
 
+    # Run pre-commit hook
+    if not run_hook(repo, "pre-commit"):
+        print("Pre-commit hook failed - commit aborted")
+        return
+
+    # Get old HEAD for reflog
+    old_head = repo.get_head_ref()
+
     # Update current branch pointer
+    branch_name = get_current_branch_name(repo) or "HEAD"
     _update_current_branch(repo, commit_sha)
+
+    # Update reflog
+    append_reflog(repo, branch_name, old_head, commit_sha, f"commit: {message[:50]}")
+
+    # Run post-commit hook
+    run_hook(repo, "post-commit", commit_sha)
 
     print(f"Committed {commit_sha[:7]} - {message}")
 

@@ -7,7 +7,8 @@ import os
 from ..core.checkout import checkout_commit
 from ..core.exceptions import InvalidRefError, UgitError
 from ..core.repository import Repository
-from ..utils.helpers import ensure_repository
+from ..utils.helpers import ensure_repository, get_current_branch_name
+from .reflog import append_reflog
 
 
 def checkout(target: str, create_branch: bool = False) -> None:
@@ -51,8 +52,25 @@ def _switch_to_branch(repo: Repository, branch_name: str) -> None:
     with open(head_path, "w", encoding="utf-8") as f:
         f.write(f"ref: refs/heads/{branch_name}")
 
+    # Get old HEAD for reflog
+    old_head = repo.get_head_ref()
+    old_branch = get_current_branch_name(repo) or "HEAD"
+
     # Checkout the commit without updating HEAD again
     checkout_commit(repo, commit_sha, update_head=False)
+
+    # Update reflog
+    append_reflog(
+        repo,
+        old_branch,
+        old_head,
+        commit_sha,
+        f"checkout: moving from {old_branch} to {branch_name}",
+    )
+    append_reflog(
+        repo, branch_name, None, commit_sha, f"checkout: moving to {branch_name}"
+    )
+
     print(f"Switched to branch '{branch_name}'")
 
 

@@ -47,7 +47,10 @@ jobs:
         
     - name: Test with pytest
       run: |
-        pytest --cov=ugit --cov-report=xml --cov-report=term
+        pytest --cov=ugit --cov-report=xml --cov-report=term -v
+      env:
+        # Ensure tests work on all platforms
+        PYTHONUNBUFFERED: 1
         
     - name: Upload coverage to Codecov
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'

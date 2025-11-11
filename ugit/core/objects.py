@@ -41,7 +41,7 @@ def hash_object(
     if repo is None:
         repo = Repository()
 
-    if type_ not in ("blob", "tree", "commit"):
+    if type_ not in ("blob", "tree", "commit", "tag", "delta", "pack"):
         raise ValueError(f"Invalid object type: {type_}")
 
     if not isinstance(data, bytes):

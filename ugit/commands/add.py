@@ -15,6 +15,7 @@ from ..utils.helpers import (
     safe_read_file,
     should_ignore_file,
 )
+from ..utils.parallel import process_parallel
 from ..utils.validation import sanitize_path, validate_path
 
 
@@ -54,9 +55,20 @@ def add(paths: Union[str, List[str]]) -> None:
     changes_made = False
     messages: List[str] = []
 
-    for file_path in validated_paths:
-        if _add_single_path(file_path, index_data, ignored_patterns, messages):
-            changes_made = True
+    # Use parallel processing for large numbers of files
+    if len(validated_paths) > 10:
+        # Process files in parallel
+        results = process_parallel(
+            validated_paths,
+            lambda path: _add_single_path(path, index_data, ignored_patterns, []),
+            max_workers=4,
+        )
+        changes_made = any(results)
+    else:
+        # Sequential processing for small numbers
+        for file_path in validated_paths:
+            if _add_single_path(file_path, index_data, ignored_patterns, messages):
+                changes_made = True
 
     if changes_made:
         index.write(index_data)

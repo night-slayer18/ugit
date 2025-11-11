@@ -10,6 +10,7 @@ import sys
 from typing import Dict, Optional, Tuple
 
 from ..utils.atomic import atomic_write_text
+from ..utils.cache import get_repo_cache
 
 
 class Repository:
@@ -88,14 +89,21 @@ class Index:
         """
         self.repo = repo
         self.index_path = os.path.join(repo.ugit_dir, "index")
+        self._cache = get_repo_cache()
+        self._cache_key = f"index:{self.index_path}"
 
     def read(self) -> Dict[str, Tuple[str, float, int]]:
         """
-        Read the current index.
+        Read the current index (with caching).
 
         Returns:
             Dictionary mapping file paths to (SHA, mtime, size) tuples.
         """
+        # Check cache first
+        cached = self._cache.get(self._cache_key)
+        if cached is not None:
+            return cached
+
         index = {}
         if os.path.exists(self.index_path):
             try:
@@ -131,6 +139,9 @@ class Index:
                             continue
             except (IOError, OSError, UnicodeDecodeError) as e:
                 print(f"Error reading index: {e}", file=sys.stderr)
+
+        # Cache the result
+        self._cache.set(self._cache_key, index)
         return index
 
     def write(self, index: Dict[str, Tuple[str, float, int]]) -> None:
@@ -151,5 +162,8 @@ class Index:
 
             content = "".join(lines)
             atomic_write_text(self.index_path, content, create_dirs=True)
+
+            # Invalidate cache
+            self._cache.invalidate(self._cache_key)
         except (IOError, OSError) as e:
             raise RuntimeError(f"Failed to write index: {e}")

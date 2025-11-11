@@ -12,6 +12,7 @@ from ..core.repository import Repository
 from ..utils.atomic import atomic_write_text
 from ..utils.helpers import ensure_repository, get_current_branch_name
 from ..utils.validation import validate_branch_name
+from .reflog import append_reflog
 
 
 def branch(
@@ -80,6 +81,16 @@ def _create_branch(repo: Repository, branch_name: str) -> None:
 
     os.makedirs(os.path.dirname(branch_path), exist_ok=True)
     atomic_write_text(branch_path, current_commit, create_dirs=True)
+
+    # Update reflog for new branch
+    append_reflog(
+        repo,
+        branch_name,
+        None,
+        current_commit,
+        f"branch: Created from {get_current_branch_name(repo) or 'HEAD'}",
+    )
+
     print(f"Created branch '{branch_name}'")
 
 

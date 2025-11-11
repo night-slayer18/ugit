@@ -8,7 +8,7 @@ import json
 import os
 import sys
 import time
-from typing import Dict, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from ..core.checkout import checkout_commit
 from ..core.exceptions import BranchNotFoundError, MergeConflictError, UgitError
@@ -24,13 +24,20 @@ from ..utils.helpers import (
 )
 
 
-def merge(branch_name: str, no_ff: bool = False) -> None:
+def merge(
+    branch_name: str,
+    no_ff: bool = False,
+    squash: bool = False,
+    strategy: Optional[str] = None,
+) -> None:
     """
     Merge a branch into the current branch.
 
     Args:
         branch_name: Name of branch to merge
         no_ff: Force a merge commit even for fast-forward merges
+        squash: Squash all commits into one
+        strategy: Merge strategy ('ours', 'theirs', or None for normal merge)
     """
     repo = ensure_repository()
 
@@ -55,8 +62,14 @@ def merge(branch_name: str, no_ff: bool = False) -> None:
     if not current_commit:
         raise UgitError("No current commit to merge into")
 
+    if squash:
+        _squash_merge(repo, current_commit, merge_commit, branch_name)
+    elif strategy == "ours":
+        _merge_ours(repo, current_commit, merge_commit, branch_name)
+    elif strategy == "theirs":
+        _merge_theirs(repo, current_commit, merge_commit, branch_name)
     # Check if it's a fast-forward merge
-    if is_ancestor(repo, current_commit, merge_commit):
+    elif is_ancestor(repo, current_commit, merge_commit):
         if no_ff:
             _create_merge_commit(repo, current_commit, merge_commit, branch_name)
         else:
@@ -153,6 +166,134 @@ def _three_way_merge(
     _create_merge_commit_with_tree(
         repo, current_commit, merge_commit, branch_name, merged_tree_sha
     )
+
+
+def _squash_merge(
+    repo: Repository, current_commit: str, merge_commit: str, branch_name: str
+) -> None:
+    """Perform a squash merge - combine all commits into one."""
+    current_branch = get_current_branch_name(repo)
+    if current_branch is None:
+        raise UgitError("Not on a branch (detached HEAD)")
+
+    # Find common ancestor
+    common_ancestor = _find_common_ancestor(repo, current_commit, merge_commit)
+    if not common_ancestor:
+        raise UgitError("No common ancestor found - cannot squash merge")
+
+    # Get all commits from merge branch
+    commits_to_squash = _get_commits_between(repo, common_ancestor, merge_commit)
+
+    # Apply all changes from merge branch to working directory
+    try:
+        merge_files = _get_commit_files(repo, merge_commit)
+        _write_merged_files(merge_files)
+    except ValueError as e:
+        raise UgitError(f"Error during squash merge: {e}")
+
+    # Stage all changes
+    from .add import add
+
+    add(".")
+
+    # Create single commit with combined message
+    config = Config(repo.path)
+    author = config.get_author_string()
+
+    from datetime import datetime
+
+    commit_messages = []
+    for commit_sha in commits_to_squash:
+        try:
+            commit_data = get_commit_data(commit_sha, repo=repo)
+            commit_messages.append(commit_data.get("message", ""))
+        except ValueError:
+            pass
+
+    combined_message = f"Squashed merge of '{branch_name}'\n\n" + "\n".join(
+        f"  - {msg}" for msg in commit_messages if msg
+    )
+
+    # Create commit
+    from .commit import commit
+
+    commit(combined_message, author)
+
+    print(f"Squashed {len(commits_to_squash)} commit(s) from '{branch_name}'")
+
+
+def _get_commits_between(repo: Repository, ancestor: str, descendant: str) -> List[str]:
+    """Get commits between ancestor and descendant."""
+    commits = []
+    current = descendant
+    visited = set()
+
+    while current and current != ancestor and current not in visited:
+        visited.add(current)
+        commits.append(current)
+        try:
+            commit_data = get_commit_data(current, repo=repo)
+            current = commit_data.get("parent")
+        except ValueError:
+            break
+
+    return commits
+
+
+def _merge_ours(
+    repo: Repository, current_commit: str, merge_commit: str, branch_name: str
+) -> None:
+    """Merge strategy: keep our version of all files."""
+    current_branch = get_current_branch_name(repo)
+    if current_branch is None:
+        raise UgitError("Not on a branch (detached HEAD)")
+
+    # Create merge commit with current tree
+    try:
+        commit_data = get_commit_data(current_commit, repo=repo)
+        current_tree = commit_data["tree"]
+
+        # Create merge commit pointing to current tree
+        _create_merge_commit_with_tree(
+            repo, current_commit, merge_commit, branch_name, current_tree
+        )
+
+        print(f"Merged '{branch_name}' using 'ours' strategy (kept current version)")
+    except ValueError as e:
+        raise UgitError(f"Error during merge: {e}")
+
+
+def _merge_theirs(
+    repo: Repository, current_commit: str, merge_commit: str, branch_name: str
+) -> None:
+    """Merge strategy: use their version of all files."""
+    current_branch = get_current_branch_name(repo)
+    if current_branch is None:
+        raise UgitError("Not on a branch (detached HEAD)")
+
+    # Get their tree and apply it
+    try:
+        merge_commit_data = get_commit_data(merge_commit, repo=repo)
+        merge_tree = merge_commit_data["tree"]
+
+        # Apply their tree to working directory
+        from ..core.checkout import checkout_commit
+
+        checkout_commit(repo, merge_commit, update_head=False)
+
+        # Stage all changes
+        from .add import add
+
+        add(".")
+
+        # Create merge commit with their tree
+        _create_merge_commit_with_tree(
+            repo, current_commit, merge_commit, branch_name, merge_tree
+        )
+
+        print(f"Merged '{branch_name}' using 'theirs' strategy (used their version)")
+    except ValueError as e:
+        raise UgitError(f"Error during merge: {e}")
 
 
 def _find_common_ancestor(

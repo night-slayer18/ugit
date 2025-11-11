@@ -4,6 +4,7 @@ FastAPI web server for ugit repository viewer.
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -13,8 +14,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from ugit.commands.blame import _get_blame_data
+from ugit.commands.diff import _get_commit_files
+from ugit.commands.grep import _search_tree
 from ugit.core.objects import get_object
 from ugit.core.repository import Repository
+from ugit.utils.helpers import get_commit_data, get_tree_entries
 
 
 class UgitWebServer:
@@ -268,6 +273,109 @@ class UgitWebServer:
 
             except HTTPException:
                 raise
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/blame")
+        async def get_blame(path: str, commit: str = "HEAD") -> Any:
+            """Get blame information for a file"""
+            try:
+                repo = Repository(self.repo_path)
+                if commit == "HEAD":
+                    commit = repo.get_head_ref() or commit
+
+                blame_data = _get_blame_data(repo, path, commit)
+                result = []
+                for commit_sha, author, line_num, line_content in blame_data:
+                    result.append(
+                        {
+                            "commit": commit_sha[:7],
+                            "author": author,
+                            "line": line_num,
+                            "content": line_content,
+                        }
+                    )
+                return {"blame": result, "path": path}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/diff")
+        async def get_diff(
+            commit1: str = "HEAD~1", commit2: str = "HEAD", path: Optional[str] = None
+        ) -> Any:
+            """Get diff between two commits"""
+            try:
+                repo = Repository(self.repo_path)
+                if commit1 == "HEAD~1":
+                    head = repo.get_head_ref()
+                    if head:
+                        try:
+                            commit_data = get_commit_data(head, repo=repo)
+                            commit1 = commit_data.get("parent", head)
+                        except ValueError:
+                            pass
+
+                files1 = _get_commit_files(repo, commit1)
+                files2 = _get_commit_files(repo, commit2)
+
+                if path:
+                    # Single file diff
+                    content1 = files1.get(path, "")
+                    content2 = files2.get(path, "")
+                    return {
+                        "path": path,
+                        "commit1": commit1[:7] if len(commit1) >= 7 else commit1,
+                        "commit2": commit2[:7] if len(commit2) >= 7 else commit2,
+                        "content1": content1,
+                        "content2": content2,
+                    }
+                else:
+                    # Full diff
+                    all_files = set(files1.keys()) | set(files2.keys())
+                    diff_files = []
+                    for file_path in sorted(all_files):
+                        if files1.get(file_path) != files2.get(file_path):
+                            diff_files.append(file_path)
+                    return {
+                        "files": diff_files,
+                        "commit1": commit1[:7] if len(commit1) >= 7 else commit1,
+                        "commit2": commit2[:7] if len(commit2) >= 7 else commit2,
+                    }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/search")
+        async def search_repo(
+            pattern: str,
+            path: str = "",
+            commit: str = "HEAD",
+            case_insensitive: bool = False,
+        ) -> Any:
+            """Search for pattern in repository"""
+            try:
+                repo = Repository(self.repo_path)
+                if commit == "HEAD":
+                    commit = repo.get_head_ref() or commit
+
+                flags = re.IGNORECASE if case_insensitive else 0
+                regex = re.compile(pattern, flags)
+
+                commit_data = get_commit_data(commit, repo=repo)
+                tree_sha = commit_data["tree"]
+
+                matches = _search_tree(repo, tree_sha, regex, path or ".", True)
+
+                results = []
+                for file_path, line_num, line_content in matches:
+                    results.append(
+                        {
+                            "file": file_path,
+                            "line": line_num,
+                            "content": line_content,
+                        }
+                    )
+
+                return {"results": results, "count": len(results)}
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 

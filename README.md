@@ -28,6 +28,9 @@ A minimal Git implementation in Python that demonstrates the core concepts of ve
 - **Commit History** - Visual commit timeline with detailed information  
 - **Real-time Updates** - Dynamic loading of repository data
 - **Responsive Design** - Works perfectly on desktop and mobile devices
+- **Blame View** - Line-by-line authorship in web interface
+- **Diff View** - Side-by-side commit comparison
+- **Search** - Full-text repository search
 
 ## � Documentation
 
@@ -110,6 +113,9 @@ ugit branch -d <name>       # Delete branch
 # Merge branches
 ugit merge <branch>         # Merge branch
 ugit merge <branch> --no-ff # Force merge commit
+ugit merge <branch> --squash # Squash merge
+ugit merge -s ours <branch>  # Merge strategy: keep ours
+ugit merge -s theirs <branch> # Merge strategy: use theirs
 
 # Show differences
 ugit diff                   # Working directory changes
@@ -153,6 +159,72 @@ ugit push -f                     # Force push
 ugit config user.name "Your Name"
 ugit config user.email "you@example.com"
 ugit config --list           # List all configuration
+
+# Tags
+ugit tag v1.0.0              # Create lightweight tag
+ugit tag -a v1.0.0 -m "Release" # Create annotated tag
+ugit tag -l                  # List all tags
+ugit tag -d v1.0.0          # Delete tag
+
+# Reflog
+ugit reflog                  # Show reflog entries
+ugit reflog <branch>         # Show reflog for branch
+
+# Blame
+ugit blame file.txt          # Show line authorship
+ugit blame file.txt <commit> # Blame specific commit
+
+# Cherry-pick
+ugit cherry-pick <commit>    # Apply commit to current branch
+ugit cherry-pick -n <commit> # Apply without committing
+
+# Grep
+ugit grep "pattern"          # Search for pattern
+ugit grep -i "pattern"        # Case-insensitive search
+ugit grep "pattern" <path>   # Search in specific path
+
+# Archive
+ugit archive output.tar      # Create tar archive
+ugit archive --format zip output.zip # Create zip archive
+
+# Aliases
+ugit alias st status         # Create alias
+ugit alias -l                # List aliases
+
+# Statistics
+ugit stats                   # Show repository statistics
+
+# Bisect
+ugit bisect start            # Start bisect session
+ugit bisect good             # Mark current commit as good
+ugit bisect bad              # Mark current commit as bad
+ugit bisect reset            # Reset bisect session
+
+# Rebase
+ugit rebase <branch>         # Rebase current branch
+ugit rebase -i <branch>      # Interactive rebase
+
+# Garbage Collection
+ugit gc                      # Run garbage collection
+ugit gc --aggressive          # Aggressive cleanup
+
+# Integrity Check
+ugit fsck                    # Check repository integrity
+ugit fsck --full             # Full integrity check
+
+# Worktree
+ugit worktree add <path>     # Add new worktree
+ugit worktree list           # List worktrees
+ugit worktree remove <path>  # Remove worktree
+
+# GPG Signing
+ugit gpg sign-commit <sha>   # Sign a commit
+ugit gpg sign-tag <sha>      # Sign a tag
+ugit gpg verify <sha>        # Verify signature
+
+# Pack Files
+ugit pack                    # Pack all objects
+ugit pack --unpack <file>    # Unpack objects
 ```
 
 #### 🌐 Web Interface

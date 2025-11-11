@@ -5,7 +5,7 @@ ugit is a simplified version control system that demonstrates the core concepts
 of Git including object storage, staging, committing, and basic history.
 """
 
-__version__ = "1.3.0"
+__version__ = "2.0.0"
 __author__ = "night-slayer18"
 
 # Core functionality is available but not auto-imported to avoid circular imports
